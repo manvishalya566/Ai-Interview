@@ -1,0 +1,115 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant inverse (&:is(.inverse *));
+
+@theme inline {
+  --color-ink: #000000;
+  --color-canvas: #ffffff;
+  --color-inverse-canvas: #000000;
+  --color-inverse-ink: #ffffff;
+  --color-on-inverse-soft: #ffffff;
+  --color-hairline: #e6e6e6;
+  --color-hairline-soft: #f1f1f1;
+  --color-surface-soft: #f7f7f5;
+  --color-block-lime: #dceeb1;
+  --color-block-lilac: #c5b0f4;
+  --color-block-cream: #f4ecd6;
+  --color-block-pink: #efd4d4;
+  --color-block-mint: #c8e6cd;
+  --color-block-coral: #f3c9b6;
+  --color-block-navy: #1f1d3d;
+  --color-accent-magenta: #ff3d8b;
+  --color-semantic-success: #1ea64a;
+  --color-overlay-scrim: #000000;
+
+  --text-display-xl: 86px;
+  --text-display-xl--font-weight: 340;
+  --text-display-xl--line-height: 1.00;
+  --text-display-xl--letter-spacing: -1.72px;
+  --text-display-lg: 64px;
+  --text-display-lg--font-weight: 340;
+  --text-display-lg--line-height: 1.10;
+  --text-display-lg--letter-spacing: -0.96px;
+  --text-headline: 26px;
+  --text-headline--font-weight: 540;
+  --text-headline--line-height: 1.35;
+  --text-headline--letter-spacing: -0.26px;
+  --text-subhead: 26px;
+  --text-subhead--font-weight: 340;
+  --text-subhead--line-height: 1.35;
+  --text-subhead--letter-spacing: -0.26px;
+  --text-card-title: 24px;
+  --text-card-title--font-weight: 700;
+  --text-card-title--line-height: 1.45;
+  --text-card-title--letter-spacing: 0;
+  --text-body-lg: 20px;
+  --text-body-lg--font-weight: 330;
+  --text-body-lg--line-height: 1.40;
+  --text-body-lg--letter-spacing: -0.14px;
+  --text-body: 18px;
+  --text-body--font-weight: 320;
+  --text-body--line-height: 1.45;
+  --text-body--letter-spacing: -0.26px;
+  --text-body-sm: 16px;
+  --text-body-sm--font-weight: 330;
+  --text-body-sm--line-height: 1.45;
+  --text-body-sm--letter-spacing: -0.14px;
+  --text-link: 20px;
+  --text-link--font-weight: 480;
+  --text-link--line-height: 1.40;
+  --text-link--letter-spacing: -0.10px;
+  --text-button: 20px;
+  --text-button--font-weight: 480;
+  --text-button--line-height: 1.40;
+  --text-button--letter-spacing: -0.10px;
+  --text-eyebrow: 18px;
+  --text-eyebrow--font-weight: 400;
+  --text-eyebrow--line-height: 1.30;
+  --text-eyebrow--letter-spacing: 0.54px;
+  --text-caption: 12px;
+  --text-caption--font-weight: 400;
+  --text-caption--line-height: 1.00;
+  --text-caption--letter-spacing: 0.60px;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --spacing-hair: 1px;
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  --spacing-section: 96px;
+
+  --radius-xs: 2px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 50px;
+  --radius-full: 9999px;
+}
+
+html {
+  font-feature-settings: "kern";
+}
+
+body {
+  font-family: var(--font-body);
+  background: white;
+  color: black;
+}
+
+@utility text-eyebrow {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+@utility text-caption {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
