@@ -18,7 +18,7 @@ function FeatureTile({
     <div
       data-slot="feature-tile"
       className={cn(
-        "bg-[#f7f7f5] rounded-[8px] p-[24px] text-black",
+        "bg-secondary rounded-[8px] p-[24px] text-foreground",
         className
       )}
       {...props}

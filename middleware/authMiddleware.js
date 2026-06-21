@@ -2,8 +2,7 @@ import jwt from "jsonwebtoken";
 
 export async function authMiddleware(req) {
   try {
-
-    const token = req.headers.get("authorization");
+    const token = req.cookies.get("auth_token")?.value;
 
     if (!token) {
       return {
@@ -12,10 +11,8 @@ export async function authMiddleware(req) {
       };
     }
 
-    const jwtToken = token.replace("Bearer ", "");
-
     const decoded = jwt.verify(
-      jwtToken,
+      token,
       process.env.JWT_SECRET
     );
 
@@ -23,13 +20,10 @@ export async function authMiddleware(req) {
       success: true,
       userId: decoded.userId,
     };
-
   } catch (error) {
-
     return {
       success: false,
       message: "Invalid token",
     };
-
   }
 }

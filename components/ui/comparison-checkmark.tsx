@@ -20,7 +20,7 @@ function ComparisonCheckmark({
       )}
       {...props}
     >
-      <Check className="size-3 text-[#1ea64a]" strokeWidth={3} />
+      <Check className="size-3 text-semantic-success" strokeWidth={3} />
     </div>
   )
 }

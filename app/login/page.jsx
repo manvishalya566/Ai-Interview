@@ -1,21 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import Link from 'next/link'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { useAuth } from '@/hooks/useAuth'
 import {
   Eye, EyeOff, Mail, Lock, Loader,
-  ArrowRight, Check, Star, Users, Sparkles,
-  Brain, Zap, BarChart3
+  ArrowRight, Brain, Check
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { TopNav } from '@/components/ui/top-nav'
 import { FigmaButton } from '@/components/ui/figma-button'
+import { TextInput } from '@/components/ui/text-input'
 import { Footer } from '@/components/ui/footer'
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -26,70 +27,35 @@ function GoogleIcon() {
 
 function GithubIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
       <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
     </svg>
   )
 }
 
-const features = [
-  {
-    icon: Brain,
-    title: 'AI-Powered Analysis',
-    desc: 'Smart question generation tailored to your role and experience level',
-  },
-  {
-    icon: Zap,
-    title: 'Real-time Feedback',
-    desc: 'Instant insights on your responses with actionable improvement tips',
-  },
-  {
-    icon: BarChart3,
-    title: 'Smart Performance Scoring',
-    desc: 'Multi-dimensional scoring across clarity, relevance, and depth',
-  },
-]
-
-const companies = ['Google', 'Amazon', 'Meta', 'Microsoft', 'Apple', 'Netflix']
-
-const testimonials = [
-  {
-    name: 'Sarah Chen',
-    role: 'Software Engineer @ Google',
-    content: 'This AI mock interview platform helped me land my dream job. The real-time feedback was incredibly accurate.',
-    rating: 5,
-  },
-  {
-    name: 'Marcus Johnson',
-    role: 'Product Manager @ Meta',
-    content: 'The role-specific questions were spot-on. I felt completely prepared after just two weeks of practice.',
-    rating: 5,
-  },
-  {
-    name: 'Priya Patel',
-    role: 'Data Scientist @ Amazon',
-    content: 'The analytics dashboard showed me exactly where I needed to improve. Highly recommended.',
-    rating: 5,
-  },
-]
-
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { user: authUser, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [testimonialIdx, setTestimonialIdx] = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTestimonialIdx((prev) => (prev + 1) % testimonials.length)
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [])
+    if (!authLoading && authUser) {
+      router.replace('/dashboard')
+    }
+  }, [authUser, authLoading, router])
+
+  if (authLoading) return null
+  if (authUser) return null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setErrorMessage('')
     setIsLoading(true)
     try {
       const res = await fetch("/api/login", {
@@ -99,164 +65,109 @@ export default function LoginPage() {
       })
       const data = await res.json()
       if (data.success) {
-        window.location.href = "/dashboard"
+        const redirectTo = searchParams.get("redirect") || "/dashboard"
+        window.location.href = redirectTo
       } else {
-        alert(data.message || data.error || "Login failed")
+        setErrorMessage(data.message || data.error || "Login failed")
       }
     } catch (err) {
-      alert("Something went wrong. Please try again.")
+      setErrorMessage("Something went wrong. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="w-full min-h-screen flex flex-col bg-white text-black">
+    <div className="relative min-h-screen flex flex-col bg-canvas">
       <TopNav />
-
-      <main className="flex-1 flex">
-        {/* ===== LEFT PANEL ===== */}
-        <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-center px-12 py-12 bg-white">
-          <div className="relative z-10 max-w-xl mx-auto w-full">
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[420px]"
+        >
+          <div className="rounded-lg border border-hairline bg-background p-8 sm:p-10">
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <Link href="/" className="inline-flex items-center gap-2 group">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-black">
-                  <Brain className="h-5 w-5 text-white" />
+              <Link href="/" className="inline-flex items-center gap-2.5 mb-8 group">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
+                  <Brain className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-lg font-[480] text-black">MockAI</span>
+                <span className="text-xl font-semibold tracking-tight text-foreground">MockAI</span>
               </Link>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="mt-16"
-            >
-              <h1 className="text-4xl font-[340] leading-[1.10] tracking-[-0.96px] md:text-5xl text-black">
-                Welcome Back
-              </h1>
-              <p className="mt-4 text-[18px] font-[320] leading-[1.45] text-black/60 max-w-md">
-                Your AI interview coach is ready. Continue where you left off and keep building toward your dream role.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.4 }}
-              className="mt-10 rounded-[24px] bg-[#c5b0f4] p-8"
-            >
-              <h3 className="text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-black/50 mb-6">
-                Why MockAI
-              </h3>
-              <div className="space-y-4">
-                {features.map((feature, i) => (
-                  <motion.div
-                    key={feature.title}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.5 + i * 0.1 }}
-                    className="flex items-start gap-4"
-                  >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white">
-                      <feature.icon className="h-4 w-4 text-black" />
-                    </div>
-                    <div>
-                      <p className="text-[16px] font-[480] leading-[1.40] tracking-[-0.10px] text-black">{feature.title}</p>
-                      <p className="text-[14px] font-[330] leading-[1.45] text-black/60 mt-0.5">{feature.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.6 }}
-              className="mt-8"
+              transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <p className="text-[12px] font-[400] font-mono uppercase tracking-[0.60px] text-black/30 mb-3">
-                Trusted by engineers from
+              <h1 className="text-headline text-foreground">
+                Welcome back
+              </h1>
+              <p className="mt-2 text-body-sm text-foreground/50">
+                Sign in to continue your interview practice.
               </p>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                {companies.map((company) => (
-                  <span
-                    key={company}
-                    className="text-sm font-semibold text-black/20"
-                  >
-                    {company}
-                  </span>
-                ))}
-              </div>
             </motion.div>
-          </div>
-        </div>
 
-        {/* ===== RIGHT PANEL ===== */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-12">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative w-full max-w-md"
-          >
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-[14px] font-[330] text-black/40 hover:text-black/60 transition-colors mb-8 group"
+            <motion.form
+              onSubmit={handleSubmit}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="mt-8 space-y-5"
             >
-              <ArrowRight className="h-3 w-3 rotate-180 transition-transform duration-200 group-hover:-translate-x-0.5" />
-              Back to home
-            </Link>
-
-            <h1 className="text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-black">
-              Sign In
-            </h1>
-            <p className="mt-2 text-[16px] font-[330] leading-[1.45] text-black/60">
-              Welcome back! Sign in to continue your interview practice.
-            </p>
-
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-              <div>
-                <label htmlFor="email" className="block text-[14px] font-[330] text-black/60 mb-1.5">
-                  Email address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/30" />
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-12 pl-10 pr-4 bg-white border border-[#e6e6e6] rounded-[8px] text-[16px] font-[330] text-black placeholder:text-black/30 transition-colors focus:border-black focus:outline-none focus:ring-0"
-                    placeholder="you@example.com"
-                  />
+              {errorMessage && (
+                <div className="rounded-md bg-block-pink px-4 py-3 text-sm text-foreground">
+                  {errorMessage}
                 </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-caption text-foreground/40">
+                  Email
+                </label>
+                <TextInput
+                  id="email"
+                  type="email"
+                  icon={Mail}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
               </div>
 
-              <div>
-                <label htmlFor="password" className="block text-[14px] font-[330] text-black/60 mb-1.5">
-                  Password
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="text-caption text-foreground/40">
+                    Password
+                  </label>
+                  <Link
+                    href="#"
+                    className="text-caption text-foreground/30 hover:text-foreground/60 transition-colors"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/30" />
-                  <input
+                  <TextInput
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    icon={Lock}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-12 pl-10 pr-10 bg-white border border-[#e6e6e6] rounded-[8px] text-[16px] font-[330] text-black placeholder:text-black/30 transition-colors focus:border-black focus:outline-none focus:ring-0"
                     placeholder="Enter your password"
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black/30 hover:text-black/60 transition-colors p-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60 transition-colors p-0.5"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -264,31 +175,28 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer group">
+              <label className="flex items-center gap-2.5 cursor-pointer group py-0.5">
+                <div className="relative flex items-center justify-center">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded border-[#e6e6e6] text-black focus:ring-black"
+                    className="peer sr-only"
                   />
-                  <span className="text-[14px] font-[330] text-black/50 group-hover:text-black/70 transition-colors">
-                    Remember me
-                  </span>
-                </label>
-                <Link
-                  href="#"
-                  className="text-[14px] font-[330] text-black/50 hover:text-black transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+                  <div className="h-4 w-4 rounded border border-hairline bg-background peer-checked:bg-primary peer-checked:border-primary transition-all duration-200 flex items-center justify-center">
+                    {rememberMe && <Check className="h-3 w-3 text-primary-foreground" />}
+                  </div>
+                </div>
+                <span className="text-body-sm text-foreground/40 group-hover:text-foreground/60 transition-colors select-none">
+                  Keep me signed in
+                </span>
+              </label>
 
               <FigmaButton
                 variant="primary"
                 type="submit"
                 disabled={isLoading}
-                className="w-full justify-center"
+                className="w-full justify-center h-12 text-button"
               >
                 {isLoading ? (
                   <>
@@ -302,48 +210,69 @@ export default function LoginPage() {
                   </>
                 )}
               </FigmaButton>
+            </motion.form>
 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="mt-6"
+            >
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[#e6e6e6]" />
+                  <div className="w-full border-t border-hairline" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-4 text-black/30">Or continue with</span>
+                  <span className="bg-background px-4 text-foreground/30">
+                    or continue with
+                  </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="mt-5 grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2.5 h-11 rounded-[50px] border border-[#e6e6e6] bg-white text-sm text-black/60 transition-all duration-200 hover:bg-[#f7f7f5] hover:text-black"
+                  className="flex items-center justify-center gap-2.5 h-11 rounded-md border border-hairline bg-background text-sm font-medium text-foreground/50 transition-all duration-200 hover:bg-secondary hover:text-foreground hover:border-foreground/20 active:scale-[0.98]"
                 >
                   <GoogleIcon />
                   Google
                 </button>
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2.5 h-11 rounded-[50px] border border-[#e6e6e6] bg-white text-sm text-black/60 transition-all duration-200 hover:bg-[#f7f7f5] hover:text-black"
+                  className="flex items-center justify-center gap-2.5 h-11 rounded-md border border-hairline bg-background text-sm font-medium text-foreground/50 transition-all duration-200 hover:bg-secondary hover:text-foreground hover:border-foreground/20 active:scale-[0.98]"
                 >
                   <GithubIcon />
                   GitHub
                 </button>
               </div>
+            </motion.div>
 
-              <p className="text-center text-[14px] font-[330] text-black/50">
-                Don&apos;t have an account?{' '}
-                <Link
-                  href="/signup"
-                  className="font-[480] text-black hover:underline"
-                >
-                  Sign up
-                </Link>
-              </p>
-            </form>
-          </motion.div>
-        </div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-8 text-center text-body-sm text-foreground/40"
+            >
+              Don&apos;t have an account?{' '}
+              <Link
+                href="/signup"
+                className="font-semibold text-foreground hover:text-primary transition-colors"
+              >
+                Create one
+              </Link>
+            </motion.p>
+          </div>
+        </motion.div>
       </main>
-
       <Footer />
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

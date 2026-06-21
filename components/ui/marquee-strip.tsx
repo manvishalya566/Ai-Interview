@@ -21,7 +21,7 @@ function MarqueeStrip({
     <div
       data-slot="marquee-strip"
       className={cn(
-        "h-[36px] bg-black text-white overflow-hidden",
+        "h-[36px] bg-primary text-primary-foreground overflow-hidden",
         className
       )}
       {...props}

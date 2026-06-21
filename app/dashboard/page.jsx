@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, History, MessageSquare, BarChart3, Settings, LogOut,
@@ -12,6 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Footer } from '@/components/ui/footer'
 import { FigmaButton } from '@/components/ui/figma-button'
+import { useAuth } from '@/hooks/useAuth'
 
 const sidebarLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,7 +22,7 @@ const sidebarLinks = [
   { href: '/feedback', label: 'Feedback', icon: MessageSquare },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
-  { href: '/login', label: 'Logout', icon: LogOut },
+  { href: '#', label: 'Logout', icon: LogOut },
 ]
 
 const pastelAccents = {
@@ -32,52 +34,21 @@ const pastelAccents = {
   cream: '#f4ecd6',
 }
 
-const statsCards = [
-  { label: 'Total Interviews', value: 24, suffix: '', icon: Briefcase, change: '+8', changeUp: true, accent: 'lime' },
-  { label: 'Average Score', value: 87, suffix: '%', icon: Target, change: '+12%', changeUp: true, accent: 'lilac' },
-  { label: 'Skills Mastered', value: 12, suffix: '', icon: Award, change: '+3', changeUp: true, accent: 'mint' },
-  { label: 'Streak Days', value: 18, suffix: '', icon: Zap, change: '+5', changeUp: true, accent: 'coral' },
+const defaultStatsCards = [
+  { label: 'Total Interviews', value: 0, suffix: '', icon: Briefcase, change: '+0', changeUp: true, accent: 'lime' },
+  { label: 'Average Score', value: 0, suffix: '%', icon: Target, change: '+0%', changeUp: true, accent: 'lilac' },
+  { label: 'Skills Assessed', value: 0, suffix: '', icon: Award, change: '+0', changeUp: true, accent: 'mint' },
+  { label: 'Streak Days', value: 0, suffix: '', icon: Zap, change: '+0', changeUp: true, accent: 'coral' },
 ]
 
-const recentInterviews = [
-  { company: 'Google', role: 'Senior Frontend Engineer', score: 92, date: 'May 20, 2026', status: 'Completed' },
-  { company: 'Stripe', role: 'Full Stack Developer', score: 88, date: 'May 18, 2026', status: 'Completed' },
-  { company: 'Meta', role: 'Product Designer', score: 76, date: 'May 15, 2026', status: 'Completed' },
-  { company: 'Airbnb', role: 'Frontend Engineer', score: 94, date: 'May 12, 2026', status: 'Completed' },
-  { company: 'Netflix', role: 'UI Engineer', score: 85, date: 'May 10, 2026', status: 'Completed' },
-]
-
-const upcomingPractices = [
-  { company: 'Apple', role: 'iOS Engineer', date: 'May 25, 2026', time: '10:00 AM', duration: '45 min' },
-  { company: 'Amazon', role: 'SDE II', date: 'May 27, 2026', time: '2:00 PM', duration: '60 min' },
-  { company: 'Microsoft', role: 'Cloud Architect', date: 'May 30, 2026', time: '11:00 AM', duration: '45 min' },
-]
-
-const activityData = [
-  { action: 'Completed Google mock interview', time: '2 hours ago', score: 92, type: 'interview' },
-  { action: 'Reviewed feedback for Stripe', time: '4 hours ago', score: null, type: 'feedback' },
-  { action: 'Practiced DSA - Arrays & Strings', time: 'Yesterday', score: null, type: 'practice' },
-  { action: 'Completed Meta mock interview', time: 'Yesterday', score: 76, type: 'interview' },
-  { action: 'Improved communication score by 8%', time: '2 days ago', score: null, type: 'improvement' },
-  { action: 'Resume reviewed by AI', time: '3 days ago', score: null, type: 'resume' },
-]
-
-const weeklyData = [
-  { day: 'Mon', value: 65 },
-  { day: 'Tue', value: 72 },
-  { day: 'Wed', value: 58 },
-  { day: 'Thu', value: 85 },
-  { day: 'Fri', value: 90 },
-  { day: 'Sat', value: 78 },
-  { day: 'Sun', value: 82 },
-]
-
-const skillData = [
-  { label: 'Technical', value: 88 },
-  { label: 'Communication', value: 76 },
-  { label: 'Confidence', value: 82 },
-  { label: 'Problem Solving', value: 91 },
-  { label: 'Behavioral', value: 74 },
+const defaultWeeklyData = [
+  { day: 'Mon', value: 0 },
+  { day: 'Tue', value: 0 },
+  { day: 'Wed', value: 0 },
+  { day: 'Thu', value: 0 },
+  { day: 'Fri', value: 0 },
+  { day: 'Sat', value: 0 },
+  { day: 'Sun', value: 0 },
 ]
 
 function AnimatedCounter({ value, suffix = '' }) {
@@ -138,8 +109,8 @@ function CircularProgress({ value, size = 100, strokeWidth = 6, label, accentCol
           transition={{ duration: 1.5, ease: 'easeOut' }}
         />
       </svg>
-      <span className="text-2xl font-bold text-black">{value}%</span>
-      {label && <span className="text-xs text-black/50">{label}</span>}
+      <span className="text-2xl font-bold text-foreground">{value}%</span>
+      {label && <span className="text-xs text-foreground/50">{label}</span>}
     </div>
   )
 }
@@ -148,13 +119,13 @@ function SectionHeader({ title, subtitle, action }) {
   return (
     <div className="mb-6 flex items-end justify-between">
       <div>
-        <h2 className="text-xl font-bold text-black/90">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-black/40">{subtitle}</p>}
+        <h2 className="text-xl font-bold text-foreground/90">{title}</h2>
+        {subtitle && <p className="mt-1 text-sm text-foreground/40">{subtitle}</p>}
       </div>
       {action && (
         <Link
           href={action.href}
-          className="group flex items-center gap-1 text-sm text-black/60 transition-colors hover:text-black"
+          className="group flex items-center gap-1 text-sm text-foreground/60 transition-colors hover:text-foreground"
         >
           {action.label}
           <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -177,7 +148,7 @@ function StatCard({ data, index }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="relative overflow-hidden rounded-[16px] border border-[#e6e6e6] bg-white p-6 transition-all duration-300 hover:border-black/20"
+      className="relative overflow-hidden rounded-[16px] border border-border bg-background p-6 transition-all duration-300 hover:border-foreground/20"
     >
       <div
         className="absolute left-0 top-0 h-full w-[3px]"
@@ -185,21 +156,21 @@ function StatCard({ data, index }) {
       />
       <div className="relative z-10 flex items-start justify-between">
         <div>
-          <p className="text-sm text-black/50">{data.label}</p>
+          <p className="text-sm text-foreground/50">{data.label}</p>
           <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-3xl font-bold text-black">
+            <span className="text-3xl font-bold text-foreground">
               <AnimatedCounter value={data.value} suffix={data.suffix} />
             </span>
           </div>
           <div className="mt-1 flex items-center gap-1">
-            <span className={cn('text-xs font-medium', data.changeUp ? 'text-[#1ea64a]' : 'text-red-500')}>
+            <span className={cn('text-xs font-medium', data.changeUp ? 'text-semantic-success' : 'text-red-500')}>
               {data.change}
             </span>
-            <span className="text-xs text-black/30">vs last week</span>
+            <span className="text-xs text-foreground/30">vs last week</span>
           </div>
         </div>
-        <div className="rounded-xl bg-[#f7f7f5] p-3">
-          <data.icon className="h-5 w-5 text-black/60" />
+        <div className="rounded-xl bg-secondary p-3">
+          <data.icon className="h-5 w-5 text-foreground/60" />
         </div>
       </div>
     </motion.div>
@@ -207,11 +178,68 @@ function StatCard({ data, index }) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { user, loading } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login")
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="flex items-center gap-2 text-foreground/50">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+          <span className="text-sm">Loading...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  const statsCards = defaultStatsCards
+  const weeklyData = defaultWeeklyData
+
+  const skillData = [
+    { label: 'Problem Solving', value: 85 },
+    { label: 'Communication', value: 72 },
+    { label: 'Technical Depth', value: 90 },
+    { label: 'Confidence', value: 68 },
+    { label: 'Code Quality', value: 78 },
+  ]
+
+  const recentInterviews = [
+    { company: 'Google', role: 'Frontend Engineer', score: 92, date: '2026-06-05', status: 'Completed' },
+    { company: 'Stripe', role: 'Full Stack Dev', score: 78, date: '2026-06-03', status: 'Completed' },
+    { company: 'Meta', role: 'React Specialist', score: 88, date: '2026-06-01', status: 'Completed' },
+    { company: 'Netflix', role: 'UI Engineer', score: 95, date: '2026-05-28', status: 'Completed' },
+  ]
+
+  const upcomingPractices = [
+    { company: 'Apple', role: 'Senior Frontend', date: 'Jun 10', time: '10:00 AM', duration: '45 min' },
+    { company: 'Amazon', role: 'SDE II', date: 'Jun 12', time: '2:00 PM', duration: '60 min' },
+    { company: 'Microsoft', role: 'Product Engineer', date: 'Jun 15', time: '11:30 AM', duration: '45 min' },
+  ]
+
+  const activityData = [
+    { action: 'Completed Google mock interview', time: '2 hours ago', type: 'interview', score: 92 },
+    { action: 'Received AI feedback report', time: '3 hours ago', type: 'feedback' },
+    { action: 'Practiced DSA - Arrays & Hashing', time: 'Yesterday', type: 'practice' },
+    { action: 'Score improved by 5% this week', time: 'Yesterday', type: 'improvement' },
+    { action: 'Resume reviewed by AI', time: '2 days ago', type: 'resume' },
+    { action: 'Completed Stripe mock interview', time: '3 days ago', type: 'interview', score: 78 },
+    { action: 'Practiced System Design', time: '4 days ago', type: 'practice' },
+  ]
+
   return (
-    <div className="flex w-full min-h-screen bg-white text-black">
+    <div className="flex w-full min-h-screen bg-canvas">
       <AnimatePresence>
         {mobileSidebarOpen && (
           <motion.div
@@ -219,7 +247,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+            className="fixed inset-0 z-40 bg-foreground/20 lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -227,7 +255,7 @@ export default function DashboardPage() {
       <motion.aside
         animate={{ width: sidebarOpen ? 240 : 72 }}
         className={cn(
-          'fixed left-0 top-0 z-50 hidden h-full flex-col border-r border-[#e6e6e6] bg-white transition-all duration-300 lg:flex',
+          'fixed left-0 top-0 z-50 hidden h-full flex-col border-r border-border  transition-all duration-300 lg:flex',
           mobileSidebarOpen && '!flex'
         )}
       >
@@ -238,13 +266,13 @@ export default function DashboardPage() {
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[#e6e6e6] bg-white lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-border  lg:hidden"
             >
-              <MobileSidebarContent onClose={() => setMobileSidebarOpen(false)} />
+              <MobileSidebarContent user={user} onClose={() => setMobileSidebarOpen(false)} />
             </motion.div>
           )}
         </AnimatePresence>
-        <DesktopSidebarContent collapsed={!sidebarOpen} />
+        <DesktopSidebarContent user={user} collapsed={!sidebarOpen} />
       </motion.aside>
 
       <div className={cn('flex flex-1 flex-col transition-all duration-300', sidebarOpen ? 'lg:ml-60' : 'lg:ml-18')}>
@@ -253,34 +281,34 @@ export default function DashboardPage() {
             {/* Welcome Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.6 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-8"
+// bg-gradient-to-t from-block-pink to-accent
+              className="rounded-[24px] border border-border bg-gradient-to-t from-block-pink to-accent  p-8"
             >
-              <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className=" items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-3">
-                  <div className="inline-flex items-center gap-2 rounded-[50px] border border-[#e6e6e6] bg-[#f7f7f5] px-3 py-1">
-                    <Sparkles className="h-3.5 w-3.5 text-black/60" />
-                    <span className="text-xs font-medium text-black/70">AI Mock Interview Dashboard</span>
+                  <div className="inline-flex items-center gap-2 rounded-[50px] border border-border bg-secondary px-3 py-1">
+                    <Sparkles className="h-3.5 w-3.5 text-foreground/60" />
+                    <span className="text-xs font-medium text-foreground/70">AI Mock Interview Dashboard</span>
                   </div>
-                  <h1 className="text-3xl font-bold leading-tight sm:text-4xl text-black">
-                    Ready to Ace Your Next Interview, Alex?
+                  <h1 className="text-3xl font-bold leading-tight sm:text-4xl text-foreground">
+                    Ready to Ace Your Next Interview, {user?.name?.split(" ")[0] || "there"}?
                   </h1>
-                  <p className="max-w-xl text-base text-black/50">
-                    You have completed <span className="font-semibold text-black">24 mock interviews</span> this month.
-                    Your average score has improved by <span className="font-semibold text-[#1ea64a]">12%</span>.
-                    Keep pushing forward!
+                  <p className=" text-base text-foreground/50">
+                    Welcome back, {user?.name || "champion"}. Continue practicing to sharpen your skills
+                    and land your dream job!
                   </p>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-          <FigmaButton variant="primary" size="lg" asChild>
+                <div className="flex justify-end gap-3 sm:flex-row mt-4">
+          <FigmaButton variant="primary" size="md" className="py-3" asChild>
             <Link href="/interview">
-              <Bot className="h-5 w-5" />
-              Start Mock Interview
+              <Bot className="h-6 w-6 mr-3" />
+              Start Interview
               <ArrowRight className="h-5 w-5" />
             </Link>
           </FigmaButton>
-          <FigmaButton variant="secondary" size="lg" asChild>
+          <FigmaButton variant="secondary" size="md" className="py-3" asChild>
             <Link href="/resume-upload">
               Upload Resume
             </Link>
@@ -291,7 +319,7 @@ export default function DashboardPage() {
 
             {/* Stats Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {statsCards.map((card, i) => (
+              {statsCards?.map((card, i) => (
                 <StatCard key={card.label} data={card} index={i} />
               ))}
             </div>
@@ -303,11 +331,11 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="rounded-[16px] border border-[#e6e6e6] bg-white p-6 lg:col-span-2"
+                className="rounded-[16px] border border-border bg-background p-6 lg:col-span-2"
               >
                 <SectionHeader title="Weekly Performance" subtitle="Your progress over the last 7 days" />
                 <div className="mt-8 flex items-end justify-between gap-3">
-                  {weeklyData.map((item, i) => (
+                  {weeklyData?.map((item, i) => (
                     <motion.div
                       key={item.day}
                       initial={{ opacity: 0, y: 20 }}
@@ -315,17 +343,17 @@ export default function DashboardPage() {
                       transition={{ duration: 0.5, delay: 0.3 + i * 0.05 }}
                       className="group relative flex flex-1 flex-col items-center gap-2"
                     >
-                      <span className="text-xs font-medium text-black/40">{item.day}</span>
+                      <span className="text-xs font-medium text-foreground/40">{item.day}</span>
                       <div className="relative w-full">
-                        <div className="h-32 w-full rounded-lg bg-[#f7f7f5]" />
+                        <div className="h-32 w-full rounded-lg bg-accent/30" ></div> 
                         <motion.div
                           initial={{ height: 0 }}
                           animate={{ height: `${item.value}%` }}
                           transition={{ duration: 0.8, delay: 0.4 + i * 0.05, ease: 'easeOut' }}
-                          className="absolute bottom-0 left-0 right-0 rounded-lg bg-black/10 transition-all duration-300 group-hover:bg-black/20"
+                          className="absolute bottom-0 left-0 right-0 rounded-lg bg-accent transition-all duration-300 group-hover:bg-foreground/20"
                           style={{ minHeight: '8px' }}
                         >
-                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#f7f7f5] px-2 py-0.5 text-xs text-black/70 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 text-xs text-foreground/70 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                             {item.value}%
                           </div>
                         </motion.div>
@@ -340,11 +368,11 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
+                className="rounded-[16px] border border-border bg-background p-6"
               >
                 <SectionHeader title="Skill Analysis" subtitle="Your skill breakdown" />
                 <div className="mt-4 grid grid-cols-2 gap-6">
-                  {skillData.slice(0, 4).map((skill, i) => (
+                  {skillData?.slice(0, 4).map((skill, i) => (
                     <div key={skill.label} className="flex flex-col items-center">
                       <CircularProgress
                         value={skill.value}
@@ -352,7 +380,7 @@ export default function DashboardPage() {
                         strokeWidth={5}
                         accentColor={[pastelAccents.lime, pastelAccents.lilac, pastelAccents.mint, pastelAccents.coral][i]}
                       />
-                      <span className="mt-2 text-xs text-black/50">{skill.label}</span>
+                      <span className="mt-2 text-xs text-foreground/50">{skill.label}</span>
                     </div>
                   ))}
                 </div>
@@ -366,7 +394,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="rounded-[16px] border border-[#e6e6e6] bg-white p-6 lg:col-span-2"
+                className="rounded-[16px] border border-border bg-background p-6 lg:col-span-2"
               >
                 <SectionHeader
                   title="Recent Interviews"
@@ -376,45 +404,45 @@ export default function DashboardPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-[#e6e6e6]">
-                        <th className="pb-3 text-left text-xs font-medium text-black/40">Company</th>
-                        <th className="pb-3 text-left text-xs font-medium text-black/40">Role</th>
-                        <th className="pb-3 text-center text-xs font-medium text-black/40">Score</th>
-                        <th className="pb-3 text-left text-xs font-medium text-black/40">Date</th>
-                        <th className="pb-3 text-left text-xs font-medium text-black/40">Status</th>
+                      <tr className="border-b border-border">
+                        <th className="pb-3 text-left text-xs font-medium text-foreground/40">Company</th>
+                        <th className="pb-3 text-left text-xs font-medium text-foreground/40">Role</th>
+                        <th className="pb-3 text-center text-xs font-medium text-foreground/40">Score</th>
+                        <th className="pb-3 text-left text-xs font-medium text-foreground/40">Date</th>
+                        <th className="pb-3 text-left text-xs font-medium text-foreground/40">Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recentInterviews.map((row, i) => (
+                      {recentInterviews?.map((row, i) => (
                         <motion.tr
                           key={row.company}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: 0.35 + i * 0.05 }}
-                          className="group border-b border-[#f1f1f1] transition-colors last:border-0 hover:bg-[#f7f7f5]"
-                        >
+                          className="group border-b border-muted transition-colors last:border-0 hover:bg-secondary"
+                        > 
                           <td className="py-3.5">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f7f7f5] text-xs font-bold text-black/60">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-foreground/60">
                                 {row.company.charAt(0)}
                               </div>
-                              <span className="text-sm font-medium text-black/80">{row.company}</span>
+                              <span className="text-sm font-medium text-foreground/80">{row.company}</span>
                             </div>
                           </td>
-                          <td className="py-3.5 text-sm text-black/50">{row.role}</td>
+                          <td className="py-3.5 text-sm text-foreground/50">{row.role}</td>
                           <td className="py-3.5 text-center">
                             <span className={cn(
                               'inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-sm font-semibold',
-                              row.score >= 90 ? 'bg-[#1ea64a]/10 text-[#1ea64a]' :
-                              row.score >= 80 ? 'bg-black/10 text-black' :
+                              row.score >= 90 ? 'bg-semantic-success/10 text-semantic-success' :
+                              row.score >= 80 ? 'bg-foreground/10 text-foreground' :
                               'bg-yellow-500/10 text-yellow-600'
                             )}>
                               {row.score}%
                             </span>
                           </td>
-                          <td className="py-3.5 text-sm text-black/50">{row.date}</td>
+                          <td className="py-3.5 text-sm text-foreground/50">{row.date}</td>
                           <td className="py-3.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#1ea64a]/10 px-2.5 py-0.5 text-xs font-medium text-[#1ea64a]">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-semantic-success/10 px-2.5 py-0.5 text-xs font-medium text-semantic-success">
                               <CheckCircle className="h-3 w-3" />
                               {row.status}
                             </span>
@@ -431,11 +459,11 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.35 }}
-                className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
+                className="rounded-[16px] border border-border bg-background p-6"
               >
                 <SectionHeader title="Detailed Skills" subtitle="Performance by category" />
                 <div className="mt-4 space-y-5">
-                  {skillData.map((skill, i) => (
+                  {skillData?.map((skill, i) => (
                     <motion.div
                       key={skill.label}
                       initial={{ opacity: 0, x: -10 }}
@@ -443,15 +471,15 @@ export default function DashboardPage() {
                       transition={{ duration: 0.3, delay: 0.4 + i * 0.08 }}
                     >
                       <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-sm text-black/70">{skill.label}</span>
-                        <span className="text-xs font-medium text-black/50">{skill.value}%</span>
+                        <span className="text-sm text-foreground/70">{skill.label}</span>
+                        <span className="text-xs font-medium text-foreground/50">{skill.value}%</span>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-[#f1f1f1]">
+                      <div className="h-2 overflow-hidden rounded-full bg-accent/40">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${skill.value}%` }}
                           transition={{ duration: 1, delay: 0.5 + i * 0.08, ease: 'easeOut' }}
-                          className="h-full rounded-full bg-black/20"
+                          className="h-full rounded-full bg-accent"
                         />
                       </div>
                     </motion.div>
@@ -467,7 +495,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
+                className="rounded-[16px] border border-border bg-background p-6"
               >
                 <SectionHeader
                   title="Upcoming Practice"
@@ -475,31 +503,31 @@ export default function DashboardPage() {
                   action={{ label: 'Schedule New', href: '/interview' }}
                 />
                 <div className="space-y-3">
-                  {upcomingPractices.map((item, i) => (
+                  {upcomingPractices?.map((item, i) => (
                     <motion.div
                       key={item.company}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: 0.45 + i * 0.08 }}
-                      className="group flex items-start gap-4 rounded-[12px] border border-[#f1f1f1] bg-white p-4 transition-all duration-200 hover:border-black/20 hover:bg-[#f7f7f5]"
+                      className="group flex items-start gap-4 rounded-[12px] border border-muted bg-background p-4 transition-all duration-200 hover:border-foreground/20 hover:bg-secondary"
                     >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f7f7f5] transition-all duration-200 group-hover:bg-[#e6e6e6]">
-                        <Calendar className="h-5 w-5 text-black/60" />
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary transition-all duration-200 group-hover:bg-border">
+                        <Calendar className="h-5 w-5 text-foreground/60" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm font-medium text-black/80">{item.company}</p>
-                            <p className="text-xs text-black/40">{item.role}</p>
+                            <p className="text-sm font-medium text-foreground/80">{item.company}</p>
+                            <p className="text-xs text-foreground/40">{item.role}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-medium text-black/70">{item.date}</p>
-                            <p className="text-xs text-black/40">{item.time}</p>
+                            <p className="text-xs font-medium text-foreground/70">{item.date}</p>
+                            <p className="text-xs text-foreground/40">{item.time}</p>
                           </div>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-black/30" />
-                          <span className="text-xs text-black/30">{item.duration}</span>
+                          <Clock className="h-3 w-3 text-foreground/30" />
+                          <span className="text-xs text-foreground/30">{item.duration}</span>
                         </div>
                       </div>
                     </motion.div>
@@ -512,7 +540,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.45 }}
-                className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
+                className="rounded-[16px] border border-border bg-background p-6"
               >
                 <SectionHeader
                   title="AI Feedback Highlights"
@@ -520,21 +548,21 @@ export default function DashboardPage() {
                   action={{ label: 'Full Report', href: '/feedback' }}
                 />
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="flex flex-col items-center rounded-xl bg-[#f7f7f5] p-4">
+                  <div className="flex flex-col items-center rounded-xl bg-secondary p-4">
                     <CircularProgress value={76} size={80} strokeWidth={5} accentColor="#c5b0f4" />
-                    <span className="mt-2 text-xs text-black/50">Communication</span>
+                    <span className="mt-2 text-xs text-foreground/50">Communication</span>
                   </div>
-                  <div className="flex flex-col items-center rounded-xl bg-[#f7f7f5] p-4">
+                  <div className="flex flex-col items-center rounded-xl bg-secondary p-4">
                     <CircularProgress value={88} size={80} strokeWidth={5} accentColor="#dceeb1" />
-                    <span className="mt-2 text-xs text-black/50">Technical</span>
+                    <span className="mt-2 text-xs text-foreground/50">Technical</span>
                   </div>
-                  <div className="flex flex-col items-center rounded-xl bg-[#f7f7f5] p-4">
+                  <div className="flex flex-col items-center rounded-xl bg-secondary p-4">
                     <CircularProgress value={82} size={80} strokeWidth={5} accentColor="#c8e6cd" />
-                    <span className="mt-2 text-xs text-black/50">Confidence</span>
+                    <span className="mt-2 text-xs text-foreground/50">Confidence</span>
                   </div>
                 </div>
-                <div className="mt-5 space-y-3 rounded-xl bg-[#f7f7f5] p-4">
-                  <p className="text-xs font-mono uppercase tracking-[0.54px] text-black/70">Improvement Suggestions</p>
+                <div className="mt-5 space-y-3 rounded-xl bg-secondary p-4">
+                  <p className="text-xs font-mono uppercase tracking-[0.54px] text-foreground/70">Improvement Suggestions</p>
                   <ul className="space-y-2">
                     {[
                       'Use more structured responses (STAR method)',
@@ -546,9 +574,9 @@ export default function DashboardPage() {
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.5 + i * 0.1 }}
-                        className="flex items-start gap-2 text-sm text-black/60"
+                        className="flex items-start gap-2 text-sm text-foreground/60"
                       >
-                        <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />
+                        <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-foreground/40" />
                         {tip}
                       </motion.li>
                     ))}
@@ -562,7 +590,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
-              className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
+              className="rounded-[16px] border border-border bg-background p-6"
             >
               <SectionHeader title="Quick Actions" subtitle="Jump to your most-used tools" />
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -576,13 +604,13 @@ export default function DashboardPage() {
                     <motion.div
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
-                      className="group relative overflow-hidden rounded-[12px] border border-[#e6e6e6] bg-[#f7f7f5] p-4 transition-all duration-200 hover:border-black/20"
+                      className="group relative overflow-hidden rounded-[12px] border border-border bg-secondary p-4 transition-all duration-200 hover:border-foreground/20"
                     >
                       <div className="relative z-10 flex flex-col items-center gap-3">
-                        <div className="rounded-xl bg-white p-3 border border-[#e6e6e6]">
-                          <action.icon className="h-5 w-5 text-black/60" />
+                        <div className="rounded-xl bg-background p-3 border border-border">
+                          <action.icon className="h-5 w-5 text-foreground/60" />
                         </div>
-                        <span className="text-sm font-medium text-black/70 transition-colors group-hover:text-black">{action.label}</span>
+                        <span className="text-sm font-medium text-foreground/70 transition-colors group-hover:text-foreground">{action.label}</span>
                       </div>
                     </motion.div>
                   </Link>
@@ -595,13 +623,13 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.55 }}
-              className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
+              className="rounded-[16px] border border-border bg-background p-6"
             >
               <SectionHeader title="Activity Timeline" subtitle="Your recent activity" />
               <div className="relative mt-4">
-                <div className="absolute left-[11px] top-2 bottom-2 w-px bg-[#e6e6e6]" />
+                <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
                 <div className="space-y-0">
-                  {activityData.map((item, i) => (
+                  {activityData?.map((item, i) => (
                     <motion.div
                       key={item.action}
                       initial={{ opacity: 0, x: -10 }}
@@ -611,29 +639,29 @@ export default function DashboardPage() {
                     >
                       <div className="relative z-10 mt-1">
                         <div className={cn(
-                          'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200 bg-white',
-                          item.type === 'interview' ? 'border-[#dceeb1]' :
-                          item.type === 'feedback' ? 'border-[#c5b0f4]' :
-                          item.type === 'practice' ? 'border-[#c8e6cd]' :
-                          'border-[#e6e6e6]'
+                          'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200 bg-background',
+                          item.type === 'interview' ? 'border-block-lime' :
+                          item.type === 'feedback' ? 'border-block-lilac' :
+                          item.type === 'practice' ? 'border-block-mint' :
+                          'border-border'
                         )}>
-                          {item.type === 'interview' && <Star className="h-3 w-3 text-black/60" />}
-                          {item.type === 'feedback' && <MessageSquare className="h-3 w-3 text-black/60" />}
-                          {item.type === 'practice' && <Code className="h-3 w-3 text-black/60" />}
-                          {item.type === 'improvement' && <TrendingUp className="h-3 w-3 text-[#1ea64a]" />}
-                          {item.type === 'resume' && <BookOpen className="h-3 w-3 text-black/60" />}
+                          {item.type === 'interview' && <Star className="h-3 w-3 text-foreground/60" />}
+                          {item.type === 'feedback' && <MessageSquare className="h-3 w-3 text-foreground/60" />}
+                          {item.type === 'practice' && <Code className="h-3 w-3 text-foreground/60" />}
+                          {item.type === 'improvement' && <TrendingUp className="h-3 w-3 text-semantic-success" />}
+                          {item.type === 'resume' && <BookOpen className="h-3 w-3 text-foreground/60" />}
                         </div>
                       </div>
-                      <div className="flex flex-1 items-start justify-between gap-4 rounded-xl bg-white px-4 py-2.5 transition-all duration-200 group-hover:bg-[#f7f7f5]">
+                      <div className="flex flex-1 items-start justify-between gap-4 rounded-xl bg-background px-4 py-2.5 transition-all duration-200 group-hover:bg-secondary">
                         <div>
-                          <p className="text-sm text-black/70">{item.action}</p>
-                          <p className="mt-0.5 text-xs text-black/30">{item.time}</p>
+                          <p className="text-sm text-foreground/70">{item.action}</p>
+                          <p className="mt-0.5 text-xs text-foreground/30">{item.time}</p>
                         </div>
                         {item.score && (
                           <span className={cn(
                             'shrink-0 rounded-lg px-2 py-0.5 text-xs font-semibold',
-                            item.score >= 90 ? 'bg-[#1ea64a]/10 text-[#1ea64a]' :
-                            item.score >= 80 ? 'bg-black/10 text-black' :
+                            item.score >= 90 ? 'bg-semantic-success/10 text-semantic-success' :
+                            item.score >= 80 ? 'bg-foreground/10 text-foreground' :
                             'bg-yellow-500/10 text-yellow-600'
                           )}>
                             {item.score}%
@@ -656,16 +684,17 @@ export default function DashboardPage() {
   )
 }
 
-function DesktopSidebarContent({ collapsed }) {
+function DesktopSidebarContent({ user, collapsed }) {
+  const initial = user?.name?.charAt(0)?.toUpperCase() || "U"
   return (
     <div className="flex h-full flex-col">
-      <div className={cn('flex h-16 items-center border-b border-[#e6e6e6]', collapsed ? 'justify-center px-3' : 'px-5')}>
+      <div className={cn('flex h-16 items-center border-b border-border', collapsed ? 'justify-center px-3' : 'px-5')}>
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black">
-            <Brain className="h-5 w-5 text-white" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+            <Brain className="h-5 w-5 text-primary-foreground" />
           </div>
           {!collapsed && (
-            <span className="text-lg font-bold text-black">
+            <span className="text-lg font-bold text-foreground">
               MockAI
             </span>
           )}
@@ -680,8 +709,8 @@ function DesktopSidebarContent({ collapsed }) {
             className={cn(
               'group flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-medium transition-all duration-200',
               link.href === '/dashboard'
-                ? 'bg-[#f7f7f5] text-black'
-                : 'text-black/50 hover:bg-[#f7f7f5] hover:text-black',
+                ? 'bg-secondary text-foreground'
+                : 'text-foreground/50 hover:bg-secondary hover:text-foreground',
               collapsed && 'justify-center px-2'
             )}
             title={collapsed ? link.label : undefined}
@@ -692,20 +721,20 @@ function DesktopSidebarContent({ collapsed }) {
         ))}
       </nav>
 
-      <div className={cn('border-t border-[#e6e6e6] p-3', collapsed && 'flex justify-center')}>
+      <div className={cn('border-t border-border p-3', collapsed && 'flex justify-center')}>
         {!collapsed ? (
-          <div className="flex items-center gap-3 rounded-[12px] bg-[#f7f7f5] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
-              A
+          <div className="flex items-center gap-3 rounded-[12px] bg-secondary px-3 py-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              {initial}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium text-black/80">Alex Johnson</p>
-              <p className="truncate text-xs text-black/40">alex@example.com</p>
+              <p className="truncate text-sm font-medium text-foreground/80">{user?.name || "User"}</p>
+              <p className="truncate text-xs text-foreground/40">{user?.email || ""}</p>
             </div>
           </div>
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
-            A
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            {initial}
           </div>
         )}
       </div>
@@ -713,19 +742,20 @@ function DesktopSidebarContent({ collapsed }) {
   )
 }
 
-function MobileSidebarContent({ onClose }) {
+function MobileSidebarContent({ user, onClose }) {
+  const initial = user?.name?.charAt(0)?.toUpperCase() || "U"
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center justify-between border-b border-[#e6e6e6] px-5">
+      <div className="flex h-16 items-center justify-between border-b border-border px-5">
         <Link href="/dashboard" className="flex items-center gap-2.5" onClick={onClose}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black">
-            <Brain className="h-5 w-5 text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Brain className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold text-black">MockAI</span>
+          <span className="text-lg font-bold text-foreground">MockAI</span>
         </Link>
         <button
           onClick={onClose}
-          className="rounded-lg p-2 text-black/60 transition-colors hover:bg-[#f7f7f5] hover:text-black"
+          className="rounded-lg p-2 text-foreground/60 transition-colors hover:bg-secondary hover:text-foreground"
         >
           <X className="h-5 w-5" />
         </button>
@@ -740,8 +770,8 @@ function MobileSidebarContent({ onClose }) {
             className={cn(
               'flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-medium transition-all duration-200',
               link.href === '/dashboard'
-                ? 'bg-[#f7f7f5] text-black'
-                : 'text-black/50 hover:bg-[#f7f7f5] hover:text-black'
+                ? 'bg-secondary text-foreground'
+                : 'text-foreground/50 hover:bg-secondary hover:text-foreground'
             )}
           >
             <link.icon className="h-4.5 w-4.5 shrink-0" />
@@ -750,14 +780,14 @@ function MobileSidebarContent({ onClose }) {
         ))}
       </nav>
 
-      <div className="border-t border-[#e6e6e6] p-3">
-        <div className="flex items-center gap-3 rounded-[12px] bg-[#f7f7f5] px-3 py-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
-            A
+      <div className="border-t border-border p-3">
+        <div className="flex items-center gap-3 rounded-[12px] bg-secondary px-3 py-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            {initial}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-medium text-black/80">Alex Johnson</p>
-            <p className="truncate text-xs text-black/40">alex@example.com</p>
+            <p className="truncate text-sm font-medium text-foreground/80">{user?.name || "User"}</p>
+            <p className="truncate text-xs text-foreground/40">{user?.email || ""}</p>
           </div>
         </div>
       </div>

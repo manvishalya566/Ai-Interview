@@ -21,7 +21,7 @@ function PromoBanner({
     <div
       data-slot="promo-banner"
       className={cn(
-        "bg-[#c5b0f4] rounded-[8px] p-[16px_24px] flex flex-row items-center justify-between gap-4 text-black",
+        "bg-block-lilac rounded-[8px] p-[16px_24px] flex flex-row items-center justify-between gap-4 text-foreground",
         className
       )}
       {...props}

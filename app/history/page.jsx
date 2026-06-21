@@ -3,25 +3,17 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard, History, MessageSquare, BarChart3, Settings, LogOut,
-  Bell, Search, Filter, ArrowUpDown, Clock, Target,
+  History, Search, Filter, ArrowUpDown, Clock, Target,
   TrendingUp, Award, Zap, Brain, Code, Briefcase,
   PlayCircle, CheckCircle, ArrowRight,
-  ChevronRight, Menu, X, Bot, Trophy, Flame,
+  ChevronRight, Bot, Trophy, Flame,
   Lightbulb, Download, Layers,
-  Server, Database, Users as UsersIcon, MessageCircle, Crown
+  Server, Database, Users as UsersIcon, MessageCircle, Crown,
+  BarChart3, MessageSquare
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const sidebarLinks = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/interview', label: 'Start Interview', icon: PlayCircle },
-  { href: '/history', label: 'History', icon: History },
-  { href: '/feedback', label: 'Feedback', icon: MessageSquare },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/settings', label: 'Settings', icon: Settings },
-  { href: '/login', label: 'Logout', icon: LogOut },
-]
+import { AppShell } from '@/components/app-shell'
+import { FigmaButton } from '@/components/ui/figma-button'
 
 const heroStats = [
   { label: 'Total Interviews', value: 36, suffix: '', icon: Briefcase, color: '#dceeb1' },
@@ -111,11 +103,11 @@ function SectionHeader({ title, subtitle, action }) {
   return (
     <div className="mb-6 flex items-end justify-between">
       <div>
-        <h2 className="text-xl font-bold text-black">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-black/40">{subtitle}</p>}
+        <h2 className="text-card-title text-foreground">{title}</h2>
+        {subtitle && <p className="mt-1 text-body-sm text-foreground/40">{subtitle}</p>}
       </div>
       {action && (
-        <Link href={action.href} className="group flex items-center gap-1 text-sm text-black/60 transition-colors hover:text-black">
+        <Link href={action.href} className="group flex items-center gap-1 text-body-sm text-foreground/60 transition-colors hover:text-foreground">
           {action.label}
           <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
@@ -130,15 +122,15 @@ function ProgressBar({ value, label, delay = 0, showValue = true }) {
   return (
     <div ref={ref} className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-black/60">{label}</span>
-        {showValue && <span className="text-sm font-medium text-black">{value}%</span>}
+        <span className="text-body-sm text-foreground/60">{label}</span>
+        {showValue && <span className="text-body-sm font-medium text-foreground">{value}%</span>}
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-[#f1f1f1]">
+      <div className="h-2.5 overflow-hidden rounded-full bg-muted">
         <motion.div
           initial={{ width: 0 }}
           animate={isInView ? { width: `${value}%` } : {}}
           transition={{ duration: 1.2, delay: delay * 0.1, ease: 'easeOut' }}
-          className="h-full rounded-full bg-black"
+          className="h-full rounded-full bg-primary"
         />
       </div>
     </div>
@@ -146,8 +138,6 @@ function ProgressBar({ value, label, delay = 0, showValue = true }) {
 }
 
 export default function HistoryPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState('All')
   const [selectedSort, setSelectedSort] = useState('Newest')
 
@@ -167,653 +157,423 @@ export default function HistoryPage() {
   })
 
   return (
-    <div className="flex w-full min-h-screen bg-white text-black">
-      <AnimatePresence>
-        {mobileSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-black/20 lg:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      <motion.aside
-        animate={{ width: sidebarOpen ? 240 : 72 }}
-        className={cn(
-          'fixed left-0 top-0 z-50 hidden h-full flex-col border-r border-[#e6e6e6] bg-white transition-all duration-300 lg:flex',
-          mobileSidebarOpen && '!flex'
-        )}
+    <AppShell>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
       >
-        <AnimatePresence>
-          {mobileSidebarOpen && (
+        <h1 className="text-headline text-foreground">Your Interview Journey</h1>
+        <p className="mb-8 text-body text-foreground/50">
+          Track your progress across <span className="font-semibold text-foreground">36 interviews</span> with an average score of <span className="font-semibold text-foreground">84%</span>
+        </p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {heroStats.map((stat, i) => (
             <motion.div
-              initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[#e6e6e6] bg-white lg:hidden"
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 + i * 0.08 }}
+              className="rounded-lg border border-border bg-background p-4"
+              style={{ borderLeft: `4px solid ${stat.color}` }}
             >
-              <MobileSidebarContent onClose={() => setMobileSidebarOpen(false)} />
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
+                <stat.icon className="h-5 w-5 text-foreground" />
+              </div>
+              <div className="text-2xl font-bold text-foreground">
+                <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+              </div>
+              <p className="mt-1 text-body-sm text-foreground/40">{stat.label}</p>
             </motion.div>
-          )}
-        </AnimatePresence>
-        <DesktopSidebarContent collapsed={!sidebarOpen} />
-      </motion.aside>
+          ))}
+        </div>
+      </motion.div>
 
-      <div className={cn('flex flex-1 flex-col transition-all duration-300', sidebarOpen ? 'lg:ml-60' : 'lg:ml-18')}>
-        <header className="sticky top-0 z-30 border-b border-[#e6e6e6] bg-white">
-          <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
-            <div className="flex items-center gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
+        className="rounded-lg border border-border bg-background p-6"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {filters.map((filter) => (
               <button
-                onClick={() => setMobileSidebarOpen(true)}
-                className="rounded-[50px] p-2 text-black/40 transition-colors hover:bg-[#f7f7f5] hover:text-black lg:hidden"
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={cn(
+                  'rounded-pill px-4 py-2 text-body-sm font-medium transition-all duration-200',
+                  activeFilter === filter
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border bg-background text-foreground/50 hover:bg-secondary hover:text-foreground'
+                )}
               >
-                <Menu className="h-5 w-5" />
+                {filter}
               </button>
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="hidden rounded-[50px] p-2 text-black/40 transition-colors hover:bg-[#f7f7f5] hover:text-black lg:block"
-              >
-                {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-              </button>
-              <div className="relative hidden sm:block">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/30" />
-                <input
-                  type="text" placeholder="Search interviews..."
-                  className="h-9 w-48 rounded-[50px] border border-[#e6e6e6] bg-white pl-9 pr-4 text-sm text-black/80 placeholder:text-black/30 focus:border-black/30 focus:outline-none lg:w-64"
-                />
-              </div>
-              <button className="rounded-[50px] border border-[#e6e6e6] bg-white p-2 text-black/40 transition-colors hover:bg-[#f7f7f5] hover:text-black">
-                <Filter className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <nav className="hidden items-center gap-1 md:flex">
-                {[
-                  { href: '/dashboard', label: 'Dashboard' },
-                  { href: '/interview', label: 'Interview' },
-                  { href: '/feedback', label: 'Feedback' },
-                ].map((link) => (
-                  <Link key={link.href} href={link.href} className="rounded-[50px] px-3 py-1.5 text-sm text-black/50 transition-all hover:bg-[#f7f7f5] hover:text-black">
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
-              <button className="relative rounded-[50px] border border-[#e6e6e6] bg-white p-2 text-black/40 transition-colors hover:bg-[#f7f7f5] hover:text-black">
-                <Bell className="h-4 w-4" />
-                <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black opacity-30" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-black" />
-                </span>
-              </button>
-              <Link href="/">
-                <div className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black text-sm font-bold text-white">
-                  A
-                </div>
-              </Link>
-            </div>
+            ))}
           </div>
-        </header>
-
-        <main className="flex-1 overflow-auto">
-          <div className="space-y-8 p-4 sm:p-6 lg:p-8">
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+          <div className="relative">
+            <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/30" />
+            <select
+              value={selectedSort}
+              onChange={(e) => setSelectedSort(e.target.value)}
+              className="h-10 appearance-none rounded-pill border border-border bg-background pl-9 pr-10 text-body-sm text-foreground/70 focus:border-foreground/30 focus:outline-none"
             >
-              <h1 className="mb-1 text-3xl font-bold leading-tight text-black sm:text-4xl">Your Interview Journey</h1>
-              <p className="mb-8 text-base text-black/50">
-                Track your progress across <span className="font-semibold text-black">36 interviews</span> with an average score of <span className="font-semibold text-black">84%</span>
-              </p>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-                {heroStats.map((stat, i) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 + i * 0.08 }}
-                    className="rounded-[24px] border border-[#e6e6e6] bg-white p-4"
-                    style={{ borderLeft: `4px solid ${stat.color}` }}
-                  >
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#f7f7f5]">
-                      <stat.icon className="h-5 w-5 text-black" />
-                    </div>
-                    <div className="text-2xl font-bold text-black">
-                      <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                    </div>
-                    <p className="mt-1 text-xs text-black/40">{stat.label}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap gap-2">
-                  {filters.map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setActiveFilter(filter)}
-                      className={cn(
-                        'rounded-[50px] px-4 py-2 text-sm font-medium transition-all duration-200',
-                        activeFilter === filter
-                          ? 'bg-black text-white'
-                          : 'border border-[#e6e6e6] bg-white text-black/50 hover:bg-[#f7f7f5] hover:text-black'
-                      )}
-                    >
-                      {filter}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative">
-                  <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/30" />
-                  <select
-                    value={selectedSort}
-                    onChange={(e) => setSelectedSort(e.target.value)}
-                    className="h-10 appearance-none rounded-[50px] border border-[#e6e6e6] bg-white pl-9 pr-10 text-sm text-black/70 focus:border-black/30 focus:outline-none"
-                  >
-                    {sorts.map((sort) => (
-                      <option key={sort} value={sort} className="bg-white text-black">{sort}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <SectionHeader title="Recent Interview History" subtitle="Complete record of all your interviews" />
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#e6e6e6]">
-                      <th className="pb-3 text-left text-xs font-medium text-black/40 uppercase tracking-wider">Company</th>
-                      <th className="pb-3 text-left text-xs font-medium text-black/40 uppercase tracking-wider">Role</th>
-                      <th className="pb-3 text-left text-xs font-medium text-black/40 uppercase tracking-wider">Type</th>
-                      <th className="pb-3 text-left text-xs font-medium text-black/40 uppercase tracking-wider">Date</th>
-                      <th className="pb-3 text-left text-xs font-medium text-black/40 uppercase tracking-wider">Duration</th>
-                      <th className="pb-3 text-left text-xs font-medium text-black/40 uppercase tracking-wider">Difficulty</th>
-                      <th className="pb-3 text-center text-xs font-medium text-black/40 uppercase tracking-wider">Score</th>
-                      <th className="pb-3 text-left text-xs font-medium text-black/40 uppercase tracking-wider">Status</th>
-                      <th className="pb-3 text-right text-xs font-medium text-black/40 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedInterviews.map((row, i) => (
-                      <motion.tr
-                        key={`${row.company}-${row.date}`}
-                        initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.25 + i * 0.04 }}
-                        className="border-b border-[#f1f1f1] transition-colors last:border-0 hover:bg-[#f7f7f5]"
-                      >
-                        <td className="py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#f7f7f5] text-xs font-bold text-black">{row.company.charAt(0)}</div>
-                            <span className="text-sm font-medium text-black">{row.company}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 text-sm text-black/50">{row.role}</td>
-                        <td className="py-3.5">
-                          <span className="rounded-[8px] bg-[#f7f7f5] px-2 py-0.5 text-xs text-black/50">{row.type}</span>
-                        </td>
-                        <td className="py-3.5 text-sm text-black/50">{row.date}</td>
-                        <td className="py-3.5 text-sm text-black/50">{row.duration}</td>
-                        <td className="py-3.5">
-                          <span className={cn(
-                            'rounded-[8px] px-2 py-0.5 text-xs font-medium',
-                            row.difficulty === 'Hard' ? 'bg-[#efd4d4] text-black' :
-                            row.difficulty === 'Medium' ? 'bg-[#f4ecd6] text-black' : 'bg-[#c8e6cd] text-black'
-                          )}>
-                            {row.difficulty}
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-center">
-                          <span className={cn(
-                            'inline-flex items-center justify-center rounded-[8px] px-2 py-0.5 text-sm font-semibold',
-                            row.score >= 90 ? 'bg-[#c8e6cd] text-black' :
-                            row.score >= 80 ? 'bg-[#dceeb1] text-black' :
-                            row.score >= 70 ? 'bg-[#f4ecd6] text-black' : 'bg-[#efd4d4] text-black'
-                          )}>
-                            {row.score}%
-                          </span>
-                        </td>
-                        <td className="py-3.5">
-                          <span className="inline-flex items-center gap-1 rounded-[50px] bg-[#c8e6cd] px-2.5 py-0.5 text-xs font-medium text-black">
-                            <CheckCircle className="h-3 w-3" />
-                            {row.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Link href="/feedback" className="rounded-[50px] border border-[#e6e6e6] bg-white px-2.5 py-1.5 text-xs text-black/50 transition-colors hover:bg-[#f7f7f5] hover:text-black">Details</Link>
-                            <Link href="/interview" className="rounded-[50px] bg-black px-2.5 py-1.5 text-xs text-white transition-colors hover:bg-black/80">Retry</Link>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <SectionHeader title="Performance Timeline" subtitle="Your interview journey over the months" />
-              <div className="relative">
-                <div className="absolute left-[19px] top-2 bottom-2 w-px bg-[#e6e6e6]" />
-                <div className="space-y-0">
-                  {timelineData.map((item, i) => (
-                    <motion.div
-                      key={item.month}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.3 + i * 0.08 }}
-                      className="group relative flex items-start gap-4 pb-6 last:pb-0"
-                    >
-                      <div className="relative z-10 mt-1">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#e6e6e6] bg-[#f7f7f5] transition-colors group-hover:bg-[#e6e6e6]">
-                          <BarChart3 className="h-4 w-4 text-black" />
-                        </div>
-                      </div>
-                      <div className="flex flex-1 items-center justify-between gap-4 rounded-[8px] bg-white px-4 py-3 transition-colors group-hover:bg-[#f7f7f5]">
-                        <div>
-                          <p className="text-sm font-medium text-black">{item.month}</p>
-                          <p className="mt-0.5 text-xs text-black/40">{item.sessions} interviews completed</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-black/30">Score</span>
-                            <div className="h-2 w-20 overflow-hidden rounded-full bg-[#f1f1f1]">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${item.score}%` }}
-                                transition={{ duration: 1, delay: 0.35 + i * 0.08, ease: 'easeOut' }}
-                                className="h-full rounded-full bg-black"
-                              />
-                            </div>
-                          </div>
-                          <span className={cn('text-sm font-semibold', item.score >= 80 ? 'text-black' : 'text-black/60')}>
-                            {item.score}%
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
-                className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-              >
-                <SectionHeader title="Weekly Performance" subtitle="Score trend over the last 7 days" />
-                <div className="mt-6 flex items-end justify-between gap-2" style={{ height: '180px' }}>
-                  {weeklyPerformance.map((day, i) => (
-                    <motion.div
-                      key={day.day}
-                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.35 + i * 0.05 }}
-                      className="group relative flex flex-1 flex-col items-center gap-2"
-                    >
-                      <div className="relative w-full" style={{ height: '140px' }}>
-                        <div className="absolute bottom-0 left-0 right-0 h-full rounded-[8px] bg-[#f7f7f5]" />
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${day.value}%` }}
-                          transition={{ duration: 0.8, delay: 0.4 + i * 0.05, ease: 'easeOut' }}
-                          className="absolute bottom-0 left-0 right-0 rounded-[8px] bg-black transition-all duration-300"
-                          style={{ minHeight: '12px' }}
-                        >
-                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[8px] bg-black px-2 py-0.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                            {day.value}%
-                          </div>
-                        </motion.div>
-                      </div>
-                      <span className="text-xs font-medium text-black/40">{day.day}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35 }}
-                className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-              >
-                <SectionHeader title="Score Comparison" subtitle="Above average performance" />
-                <div className="mt-4 rounded-[8px] bg-[#f7f7f5] p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp className="h-4 w-4 text-black" />
-                    <span className="text-xs font-semibold text-black uppercase tracking-wider">Above Average</span>
-                  </div>
-                  <p className="text-sm text-black/60">
-                    Your score of <span className="font-medium text-black">84%</span> is <span className="font-medium text-black">12% higher</span> than the average candidate.
-                    You&apos;re in the <span className="font-medium text-black">Top 15%</span> of all users.
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <SectionHeader title="Interview Cards" subtitle="Quick overview of all your interviews" />
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {interviewCards.map((card, i) => (
-                  <motion.div
-                    key={card.company}
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.45 + i * 0.06 }}
-                    className="rounded-[8px] bg-[#f7f7f5] p-4 transition-colors hover:bg-[#e6e6e6]"
-                  >
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-white text-lg font-bold text-black">
-                        {card.company.charAt(0)}
-                      </div>
-                      <span className="rounded-[50px] bg-[#c8e6cd] px-2.5 py-0.5 text-xs font-medium text-black">
-                        {card.status}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-black">{card.company}</h3>
-                    <p className="text-sm text-black/50">{card.role}</p>
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-[8px] bg-white px-2 py-0.5 text-xs text-black/50">{card.mode}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-2xl font-bold text-black">{card.score}</span>
-                        <span className="text-sm text-black/40">%</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <Link href="/feedback" className="flex-1 rounded-[50px] border border-[#e6e6e6] bg-white py-2 text-center text-xs text-black/50 transition-colors hover:bg-[#f7f7f5] hover:text-black">Feedback</Link>
-                      <Link href="/interview" className="flex-1 rounded-[50px] bg-black py-2 text-center text-xs text-white transition-colors hover:bg-black/80">Retry</Link>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <SectionHeader title="Skill Performance Breakdown" subtitle="Your proficiency across all domains" />
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {skillsBreakdown.map((skill, i) => (
-                  <motion.div
-                    key={skill.name}
-                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.55 + i * 0.06 }}
-                    className="rounded-[24px] border border-[#e6e6e6] bg-white p-5 transition-colors hover:bg-[#f7f7f5]"
-                  >
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#f7f7f5]">
-                        <skill.icon className="h-5 w-5 text-black" />
-                      </div>
-                      <span className={cn(
-                        'rounded-[8px] px-2 py-0.5 text-xs font-semibold',
-                        skill.improvement.startsWith('+') ? 'bg-[#c8e6cd] text-black' :
-                        skill.improvement.startsWith('-') ? 'bg-[#efd4d4] text-black' : 'bg-[#f7f7f5] text-black/50'
-                      )}>
-                        {skill.improvement}
-                      </span>
-                    </div>
-                    <h3 className="text-sm font-medium text-black">{skill.name}</h3>
-                    <div className="mt-3">
-                      <ProgressBar value={skill.score} showValue={true} />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <SectionHeader title="AI Recommendations" subtitle="Personalized suggestions based on your performance" />
-              <div className="grid gap-6 lg:grid-cols-2">
-                <div className="space-y-3">
-                  {aiRecommendations.map((rec, i) => (
-                    <motion.div
-                      key={rec.area}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.6 + i * 0.08 }}
-                      className="rounded-[8px] border border-[#e6e6e6] bg-white p-4 transition-colors hover:bg-[#f7f7f5]"
-                    >
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#f7f7f5]">
-                            <Lightbulb className="h-3.5 w-3.5 text-black" />
-                          </div>
-                          <span className="text-sm font-medium text-black">{rec.area}</span>
-                        </div>
-                        <span className={cn(
-                          'rounded-[50px] px-2 py-0.5 text-xs font-medium',
-                          rec.priority === 'High' ? 'bg-[#efd4d4] text-black' : 'bg-[#f4ecd6] text-black'
-                        )}>
-                          {rec.priority}
-                        </span>
-                      </div>
-                      <div className="ml-9 space-y-1">
-                        <p className="text-xs text-black/60">Weakness: {rec.weakness}</p>
-                        <p className="text-xs text-black/70">Action: {rec.action}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-                <div className="space-y-4">
-                  <div className="rounded-[8px] bg-[#f7f7f5] p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Bot className="h-5 w-5 text-black" />
-                      <span className="text-sm font-semibold text-black">AI Learning Path</span>
-                    </div>
-                    <div className="space-y-3">
-                      {[
-                        { step: '1', title: 'Master System Design', desc: 'Complete 5 case studies this week', done: false },
-                        { step: '2', title: 'Refine Behavioral Stories', desc: 'Record 10 STAR method answers', done: false },
-                        { step: '3', title: 'Practice DSA Hard Problems', desc: 'Solve 20 LeetCode hard questions', done: false },
-                        { step: '4', title: 'Full Mock Interview', desc: 'Take a complete timed interview', done: false },
-                      ].map((step, i) => (
-                        <motion.div
-                          key={step.title}
-                          initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.65 + i * 0.08 }}
-                          className="flex items-start gap-3"
-                        >
-                          <div className={cn(
-                            'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                            step.done ? 'bg-[#c8e6cd] text-black' : 'bg-white text-black'
-                          )}>
-                            {step.step}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-black">{step.title}</p>
-                            <p className="text-xs text-black/40">{step.desc}</p>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                  <Link
-                    href="/interview"
-                    className="group relative flex w-full items-center justify-center gap-2 rounded-[50px] bg-black py-3 text-sm font-medium text-white transition-colors hover:bg-black/80"
-                  >
-                    <PlayCircle className="h-4 w-4" />
-                    <span>Start Recommended Practice</span>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <SectionHeader title="Achievements & Badges" subtitle="Milestones you've unlocked on your journey" />
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                {achievements.map((badge, i) => (
-                  <motion.div
-                    key={badge.name}
-                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.65 + i * 0.06 }}
-                    className="rounded-[8px] bg-[#f7f7f5] p-6 text-center transition-colors hover:bg-[#e6e6e6]"
-                  >
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[8px] bg-white">
-                      <badge.icon className="h-7 w-7 text-black" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-black">{badge.name}</h3>
-                    <p className="mt-1 text-xs text-black/40">{badge.description}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.65 }}
-              className="rounded-[24px] border border-[#e6e6e6] bg-white p-6"
-            >
-              <SectionHeader title="Quick Actions" subtitle="Jump to your next step" />
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Link href="/interview">
-                  <motion.div whileHover={{ y: -2 }} className="rounded-[8px] border border-[#e6e6e6] bg-white p-5 transition-colors hover:bg-[#f7f7f5]">
-                    <div className="mb-3 inline-flex rounded-[8px] bg-black p-2.5">
-                      <PlayCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-black">Start New Interview</h4>
-                    <p className="mt-1 text-xs text-black/40">Begin a fresh mock interview</p>
-                  </motion.div>
-                </Link>
-                <Link href="/feedback">
-                  <motion.div whileHover={{ y: -2 }} className="rounded-[8px] border border-[#e6e6e6] bg-white p-5 transition-colors hover:bg-[#f7f7f5]">
-                    <div className="mb-3 inline-flex rounded-[8px] bg-black p-2.5">
-                      <MessageSquare className="h-5 w-5 text-white" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-black">View Feedback</h4>
-                    <p className="mt-1 text-xs text-black/40">Review your latest results</p>
-                  </motion.div>
-                </Link>
-                <button>
-                  <motion.div whileHover={{ y: -2 }} className="rounded-[8px] border border-[#e6e6e6] bg-white p-5 transition-colors hover:bg-[#f7f7f5]">
-                    <div className="mb-3 inline-flex rounded-[8px] bg-black p-2.5">
-                      <Download className="h-5 w-5 text-white" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-black">Download Reports</h4>
-                    <p className="mt-1 text-xs text-black/40">Export your interview history</p>
-                  </motion.div>
-                </button>
-                <Link href="/dashboard">
-                  <motion.div whileHover={{ y: -2 }} className="rounded-[8px] border border-[#e6e6e6] bg-white p-5 transition-colors hover:bg-[#f7f7f5]">
-                    <div className="mb-3 inline-flex rounded-[8px] bg-black p-2.5">
-                      <LayoutDashboard className="h-5 w-5 text-white" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-black">Go to Dashboard</h4>
-                    <p className="mt-1 text-xs text-black/40">View full analytics overview</p>
-                  </motion.div>
-                </Link>
-              </div>
-            </motion.div>
-
-            <div className="h-8" />
-          </div>
-        </main>
-      </div>
-    </div>
-  )
-}
-
-function DesktopSidebarContent({ collapsed }) {
-  return (
-    <div className="flex h-full flex-col">
-      <div className={cn('flex h-16 items-center border-b border-[#e6e6e6]', collapsed ? 'justify-center px-3' : 'px-5')}>
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-black">
-            <Brain className="h-5 w-5 text-white" />
-          </div>
-          {!collapsed && <span className="text-lg font-bold text-black">MockAI</span>}
-        </Link>
-      </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {sidebarLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cn(
-              'group flex items-center gap-3 rounded-[50px] px-3 py-2.5 text-sm font-medium transition-all duration-200',
-              link.href === '/history' ? 'bg-black text-white' : 'text-black/50 hover:bg-[#f7f7f5] hover:text-black',
-              collapsed && 'justify-center px-2'
-            )}
-            title={collapsed ? link.label : undefined}
-          >
-            <link.icon className="h-4.5 w-4.5 shrink-0" />
-            {!collapsed && <span>{link.label}</span>}
-          </Link>
-        ))}
-      </nav>
-      <div className={cn('border-t border-[#e6e6e6] p-3', collapsed && 'flex justify-center')}>
-        {!collapsed ? (
-          <div className="flex items-center gap-3 rounded-[8px] bg-[#f7f7f5] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-black text-xs font-bold text-white">A</div>
-            <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium text-black">Alex Johnson</p>
-              <p className="truncate text-xs text-black/40">alex@example.com</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-black text-xs font-bold text-white">A</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function MobileSidebarContent({ onClose }) {
-  return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center justify-between border-b border-[#e6e6e6] px-5">
-        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={onClose}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-black">
-            <Brain className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-lg font-bold text-black">MockAI</span>
-        </Link>
-        <button onClick={onClose} className="rounded-[50px] p-2 text-black/40 transition-colors hover:bg-[#f7f7f5] hover:text-black">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {sidebarLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            onClick={onClose}
-            className={cn(
-              'flex items-center gap-3 rounded-[50px] px-3 py-2.5 text-sm font-medium transition-all duration-200',
-              link.href === '/history' ? 'bg-black text-white' : 'text-black/50 hover:bg-[#f7f7f5] hover:text-black'
-            )}
-          >
-            <link.icon className="h-4.5 w-4.5 shrink-0" />
-            <span>{link.label}</span>
-          </Link>
-        ))}
-      </nav>
-      <div className="border-t border-[#e6e6e6] p-3">
-        <div className="flex items-center gap-3 rounded-[8px] bg-[#f7f7f5] px-3 py-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-black text-xs font-bold text-white">A</div>
-          <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-medium text-black">Alex Johnson</p>
-            <p className="truncate text-xs text-black/40">alex@example.com</p>
+              {sorts.map((sort) => (
+                <option key={sort} value={sort} className="bg-background text-foreground">{sort}</option>
+              ))}
+            </select>
           </div>
         </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
+        className="rounded-lg border border-border bg-background p-6"
+      >
+        <SectionHeader title="Recent Interview History" subtitle="Complete record of all your interviews" />
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="pb-3 text-left text-eyebrow text-foreground/40">Company</th>
+                <th className="pb-3 text-left text-eyebrow text-foreground/40">Role</th>
+                <th className="pb-3 text-left text-eyebrow text-foreground/40">Type</th>
+                <th className="pb-3 text-left text-eyebrow text-foreground/40">Date</th>
+                <th className="pb-3 text-left text-eyebrow text-foreground/40">Duration</th>
+                <th className="pb-3 text-left text-eyebrow text-foreground/40">Difficulty</th>
+                <th className="pb-3 text-center text-eyebrow text-foreground/40">Score</th>
+                <th className="pb-3 text-left text-eyebrow text-foreground/40">Status</th>
+                <th className="pb-3 text-right text-eyebrow text-foreground/40">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedInterviews.map((row, i) => (
+                <motion.tr
+                  key={`${row.company}-${row.date}`}
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.25 + i * 0.04 }}
+                  className="border-b border-muted transition-colors last:border-0 hover:bg-secondary"
+                >
+                  <td className="py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-xs font-bold text-foreground">{row.company.charAt(0)}</div>
+                      <span className="text-body-sm font-medium text-foreground">{row.company}</span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 text-body-sm text-foreground/50">{row.role}</td>
+                  <td className="py-3.5">
+                    <span className="rounded-md bg-secondary px-2 py-0.5 text-body-sm text-foreground/50">{row.type}</span>
+                  </td>
+                  <td className="py-3.5 text-body-sm text-foreground/50">{row.date}</td>
+                  <td className="py-3.5 text-body-sm text-foreground/50">{row.duration}</td>
+                  <td className="py-3.5">
+                    <span className={cn(
+                      'rounded-md px-2 py-0.5 text-body-sm font-medium',
+                      row.difficulty === 'Hard' ? 'bg-block-pink text-foreground' :
+                      row.difficulty === 'Medium' ? 'bg-block-cream text-foreground' : 'bg-block-mint text-foreground'
+                    )}>
+                      {row.difficulty}
+                    </span>
+                  </td>
+                  <td className="py-3.5 text-center">
+                    <span className={cn(
+                      'inline-flex items-center justify-center rounded-md px-2 py-0.5 text-body-sm font-semibold',
+                      row.score >= 90 ? 'bg-block-mint text-foreground' :
+                      row.score >= 80 ? 'bg-block-lime text-foreground' :
+                      row.score >= 70 ? 'bg-block-cream text-foreground' : 'bg-block-pink text-foreground'
+                    )}>
+                      {row.score}%
+                    </span>
+                  </td>
+                  <td className="py-3.5">
+                    <span className="inline-flex items-center gap-1 rounded-pill bg-block-mint px-2.5 py-0.5 text-body-sm font-medium text-foreground">
+                      <CheckCircle className="h-3 w-3" />
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link href="/feedback" className="rounded-pill border border-border bg-background px-2.5 py-1.5 text-body-sm text-foreground/50 transition-colors hover:bg-secondary hover:text-foreground">Details</Link>
+                      <Link href="/interview" className="rounded-pill bg-primary px-2.5 py-1.5 text-body-sm text-primary-foreground transition-colors hover:bg-foreground/80">Retry</Link>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
+          className="rounded-lg border border-border bg-background p-6"
+        >
+          <SectionHeader title="Weekly Performance" subtitle="Score trend over the last 7 days" />
+          <div className="mt-6 flex items-end justify-between gap-2" style={{ height: '180px' }}>
+            {weeklyPerformance.map((day, i) => (
+              <motion.div
+                key={day.day}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.35 + i * 0.05 }}
+                className="group relative flex flex-1 flex-col items-center gap-2"
+              >
+                <div className="relative w-full" style={{ height: '140px' }}>
+                  <div className="absolute bottom-0 left-0 right-0 h-full rounded-md bg-secondary" />
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${day.value}%` }}
+                    transition={{ duration: 0.8, delay: 0.4 + i * 0.05, ease: 'easeOut' }}
+                    className="absolute bottom-0 left-0 right-0 rounded-md bg-primary transition-all duration-300"
+                    style={{ minHeight: '12px' }}
+                  >
+                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-primary px-2 py-0.5 text-body-sm text-primary-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                      {day.value}%
+                    </div>
+                  </motion.div>
+                </div>
+                <span className="text-body-sm font-medium text-foreground/40">{day.day}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35 }}
+          className="rounded-lg border border-border bg-background p-6"
+        >
+          <SectionHeader title="Score Comparison" subtitle="Above average performance" />
+          <div className="mt-4 rounded-md bg-secondary p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-foreground" />
+              <span className="text-eyebrow text-foreground">Above Average</span>
+            </div>
+            <p className="text-body-sm text-foreground/60">
+              Your score of <span className="font-medium text-foreground">84%</span> is <span className="font-medium text-foreground">12% higher</span> than the average candidate.
+              You&apos;re in the <span className="font-medium text-foreground">Top 15%</span> of all users.
+            </p>
+          </div>
+        </motion.div>
       </div>
-    </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}
+        className="rounded-lg border border-border bg-background p-6"
+      >
+        <SectionHeader title="Interview Cards" subtitle="Quick overview of all your interviews" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {interviewCards.map((card, i) => (
+            <motion.div
+              key={card.company}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.45 + i * 0.06 }}
+              className="rounded-md bg-secondary p-4 transition-colors hover:bg-border"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex h-12 w-12 items-center justify-center rounded-md bg-background text-lg font-bold text-foreground">
+                  {card.company.charAt(0)}
+                </div>
+                <span className="rounded-pill bg-block-mint px-2.5 py-0.5 text-body-sm font-medium text-foreground">
+                  {card.status}
+                </span>
+              </div>
+              <h3 className="text-card-title text-foreground">{card.company}</h3>
+              <p className="text-body-sm text-foreground/50">{card.role}</p>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-background px-2 py-0.5 text-body-sm text-foreground/50">{card.mode}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-2xl font-bold text-foreground">{card.score}</span>
+                  <span className="text-body-sm text-foreground/40">%</span>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Link href="/feedback" className="flex-1 rounded-pill border border-border bg-background py-2 text-center text-body-sm text-foreground/50 transition-colors hover:bg-secondary hover:text-foreground">Feedback</Link>
+                <Link href="/interview" className="flex-1 rounded-pill bg-primary py-2 text-center text-body-sm text-primary-foreground transition-colors hover:bg-foreground/80">Retry</Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}
+        className="rounded-lg border border-border bg-background p-6"
+      >
+        <SectionHeader title="Skill Performance Breakdown" subtitle="Your proficiency across all domains" />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {skillsBreakdown.map((skill, i) => (
+            <motion.div
+              key={skill.name}
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.55 + i * 0.06 }}
+              className="rounded-lg border border-border bg-background p-5 transition-colors hover:bg-secondary"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
+                  <skill.icon className="h-5 w-5 text-foreground" />
+                </div>
+                <span className={cn(
+                  'rounded-md px-2 py-0.5 text-body-sm font-semibold',
+                  skill.improvement.startsWith('+') ? 'bg-block-mint text-foreground' :
+                  skill.improvement.startsWith('-') ? 'bg-block-pink text-foreground' : 'bg-secondary text-foreground/50'
+                )}>
+                  {skill.improvement}
+                </span>
+              </div>
+              <h3 className="text-body-sm font-medium text-foreground">{skill.name}</h3>
+              <div className="mt-3">
+                <ProgressBar value={skill.score} showValue={true} />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55 }}
+        className="rounded-lg border border-border bg-background p-6"
+      >
+        <SectionHeader title="AI Recommendations" subtitle="Personalized suggestions based on your performance" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-3">
+            {aiRecommendations.map((rec, i) => (
+              <motion.div
+                key={rec.area}
+                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.6 + i * 0.08 }}
+                className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-secondary"
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary">
+                      <Lightbulb className="h-3.5 w-3.5 text-foreground" />
+                    </div>
+                    <span className="text-body-sm font-medium text-foreground">{rec.area}</span>
+                  </div>
+                  <span className={cn(
+                    'rounded-pill px-2 py-0.5 text-body-sm font-medium',
+                    rec.priority === 'High' ? 'bg-block-pink text-foreground' : 'bg-block-cream text-foreground'
+                  )}>
+                    {rec.priority}
+                  </span>
+                </div>
+                <div className="ml-9 space-y-1">
+                  <p className="text-body-sm text-foreground/60">Weakness: {rec.weakness}</p>
+                  <p className="text-body-sm text-foreground/70">Action: {rec.action}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-md bg-secondary p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Bot className="h-5 w-5 text-foreground" />
+                <span className="text-body-sm font-semibold text-foreground">AI Learning Path</span>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { step: '1', title: 'Master System Design', desc: 'Complete 5 case studies this week', done: false },
+                  { step: '2', title: 'Refine Behavioral Stories', desc: 'Record 10 STAR method answers', done: false },
+                  { step: '3', title: 'Practice DSA Hard Problems', desc: 'Solve 20 LeetCode hard questions', done: false },
+                  { step: '4', title: 'Full Mock Interview', desc: 'Take a complete timed interview', done: false },
+                ].map((step, i) => (
+                  <motion.div
+                    key={step.title}
+                    initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.65 + i * 0.08 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className={cn(
+                      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-body-sm font-bold',
+                      step.done ? 'bg-block-mint text-foreground' : 'bg-background text-foreground'
+                    )}>
+                      {step.step}
+                    </div>
+                    <div>
+                      <p className="text-body-sm font-medium text-foreground">{step.title}</p>
+                      <p className="text-body-sm text-foreground/40">{step.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            <Link
+              href="/interview"
+              className="group relative flex w-full items-center justify-center gap-2 rounded-pill bg-primary py-3 text-body-sm font-medium text-primary-foreground transition-colors hover:bg-foreground/80"
+            >
+              <PlayCircle className="h-4 w-4" />
+              <span>Start Recommended Practice</span>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}
+        className="rounded-lg border border-border bg-background p-6"
+      >
+        <SectionHeader title="Achievements & Badges" subtitle="Milestones you've unlocked on your journey" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {achievements.map((badge, i) => (
+            <motion.div
+              key={badge.name}
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.65 + i * 0.06 }}
+              className="rounded-md bg-secondary p-6 text-center transition-colors hover:bg-border"
+            >
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-background">
+                <badge.icon className="h-7 w-7 text-foreground" />
+              </div>
+              <h3 className="text-body-sm font-semibold text-foreground">{badge.name}</h3>
+              <p className="mt-1 text-body-sm text-foreground/40">{badge.description}</p>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.65 }}
+        className="rounded-lg border border-border bg-background p-6"
+      >
+        <SectionHeader title="Quick Actions" subtitle="Jump to your next step" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href="/interview">
+            <motion.div whileHover={{ y: -2 }} className="rounded-md border border-border bg-background p-5 transition-colors hover:bg-secondary">
+              <div className="mb-3 inline-flex rounded-md bg-primary p-2.5">
+                <PlayCircle className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h4 className="text-body-sm font-semibold text-foreground">Start New Interview</h4>
+              <p className="mt-1 text-body-sm text-foreground/40">Begin a fresh mock interview</p>
+            </motion.div>
+          </Link>
+          <Link href="/feedback">
+            <motion.div whileHover={{ y: -2 }} className="rounded-md border border-border bg-background p-5 transition-colors hover:bg-secondary">
+              <div className="mb-3 inline-flex rounded-md bg-primary p-2.5">
+                <MessageSquare className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h4 className="text-body-sm font-semibold text-foreground">View Feedback</h4>
+              <p className="mt-1 text-body-sm text-foreground/40">Review your latest results</p>
+            </motion.div>
+          </Link>
+          <button>
+            <motion.div whileHover={{ y: -2 }} className="rounded-md border border-border bg-background p-5 transition-colors hover:bg-secondary">
+              <div className="mb-3 inline-flex rounded-md bg-primary p-2.5">
+                <Download className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h4 className="text-body-sm font-semibold text-foreground">Download Reports</h4>
+              <p className="mt-1 text-body-sm text-foreground/40">Export your interview history</p>
+            </motion.div>
+          </button>
+          <Link href="/dashboard">
+            <motion.div whileHover={{ y: -2 }} className="rounded-md border border-border bg-background p-5 transition-colors hover:bg-secondary">
+              <div className="mb-3 inline-flex rounded-md bg-primary p-2.5">
+                <BarChart3 className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h4 className="text-body-sm font-semibold text-foreground">Go to Dashboard</h4>
+              <p className="mt-1 text-body-sm text-foreground/40">View full analytics overview</p>
+            </motion.div>
+          </Link>
+        </div>
+      </motion.div>
+    </AppShell>
   )
 }

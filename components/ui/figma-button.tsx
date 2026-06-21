@@ -7,26 +7,26 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const figmaButtonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center font-[480] text-[15px] leading-none tracking-[-0.10px] whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center font-[480] text-[15px] leading-none tracking-[-0.10px] whitespace-nowrap transition-all duration-300 outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         primary:
-          "bg-black text-white rounded-[50px] px-4 py-[7px]",
+          "bg-primary text-primary-foreground rounded-[50px] px-4 py-[7px] hover:scale-[1.02] hover:shadow-sm active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 will-change-transform",
         secondary:
-          "bg-white text-black rounded-[50px] px-[14px] pt-[6px] pb-[8px]",
+          "bg-background text-foreground rounded-[50px] px-[14px] pt-[6px] pb-[8px] hover:scale-[1.02] hover:bg-secondary/80 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 will-change-transform",
         "tertiary-text":
-          "bg-transparent text-black rounded-[9999px] px-3 py-1.5",
+          "bg-transparent text-foreground rounded-[9999px] px-3 py-1.5",
         "icon-circular":
-          "bg-[#f7f7f5] text-black w-8 h-8 rounded-full p-0 flex items-center justify-center",
+          "bg-secondary text-foreground w-8 h-8 rounded-full p-0 flex items-center justify-center",
         "icon-circular-inverse":
-          "bg-white/16 text-white w-8 h-8 rounded-full p-0 flex items-center justify-center",
+          "bg-background/16 text-primary-foreground w-8 h-8 rounded-full p-0 flex items-center justify-center",
         "magenta-promo":
-          "bg-[#ff3d8b] text-white rounded-[50px] px-[14px] py-[7px]",
+          "bg-accent-magenta text-primary-foreground rounded-[50px] px-[14px] py-[7px] hover:scale-[1.02] hover:shadow-sm active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 will-change-transform",
         "pricing-tab-default":
-          "bg-white text-black rounded-[50px] px-[14px] py-1.5",
+          "bg-background text-foreground rounded-[50px] px-[14px] py-1.5",
         "pricing-tab-selected":
-          "bg-black text-white rounded-[50px] px-[14px] py-1.5",
+          "bg-primary text-primary-foreground rounded-[50px] px-[14px] py-1.5",
       },
       size: {
         default: "h-auto",

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import {
   Brain, MessageSquare, BarChart3, Briefcase, Shield, Clock,
@@ -13,6 +14,8 @@ import { MarqueeStrip } from '@/components/ui/marquee-strip'
 import { ColorBlock } from '@/components/ui/color-block'
 import { FigmaButton } from '@/components/ui/figma-button'
 import { Footer } from '@/components/ui/footer'
+
+const Lanyard = dynamic(() => import('@/components/ui/lanyard/Lanyard'), { ssr: false })
 
 const features = [
   {
@@ -85,48 +88,55 @@ function FadeIn({ children, delay = 0, className }) {
 
 export default function LandingPage() {
   return (
-    <div className="w-full min-h-screen bg-white text-black">
+    <div className="w-full min-h-screen bg-canvas text-foreground">
       <TopNav />
 
       {/* ===== HERO ===== */}
-      <section className="relative flex min-h-[90vh] flex-col items-center justify-center px-4 pt-14">
-        <div className="mx-auto max-w-5xl text-center">
+      <section className="relative flex min-h-[90vh] flex-col items-center justify-center px-4 pt-14 overflow-hidden">
+        {/* <div className="absolute inset-0 z-0 pointer-events-none">
+          <Lanyard position={[0, 0, 20]} gravity={[0, -40, 0]} />
+        </div> */}
+        <div className="mx-auto max-w-5xl text-center relative z-10">
           <FadeIn>
-            <p className="mb-6 text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-black/40">
+            <p className="mb-6 text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-foreground/40">
               AI Mock Interviews
             </p>
           </FadeIn>
           <FadeIn delay={0.15}>
-            <h1 className="text-[48px] md:text-[86px] font-[340] leading-[1.00] tracking-[-1.72px] text-black">
+            <h1 className="text-[48px] md:text-[86px] font-[340] leading-[1.00] tracking-[-1.72px] bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Ace Your Next<br />Interview With AI
             </h1>
           </FadeIn>
           <FadeIn delay={0.3}>
-            <p className="mx-auto mt-6 max-w-2xl text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-black/60">
+            <p className="mx-auto mt-6 max-w-2xl text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-foreground/60">
               Practice with real-time AI-powered mock interviews. Get instant feedback, track your progress, and land your dream job.
             </p>
           </FadeIn>
           <FadeIn delay={0.45}>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <FigmaButton variant="primary" href="/signup">
-                Get started for free
-                <ArrowRight className="h-4 w-4" />
+              <FigmaButton className='bg-gradient-to-r from-primary to-accent min-w-[140px]' variant="primary" asChild>
+                <Link href="/signup">
+                  Sign up
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </FigmaButton>
-              <FigmaButton variant="secondary" href="/interview">
-                View demo
+              <FigmaButton variant="secondary" asChild>
+                <Link href="/interview">
+                  View demo
+                </Link>
               </FigmaButton>
             </div>
           </FadeIn>
           <FadeIn delay={0.6}>
             <div className="mt-20">
-              <p className="mb-6 text-[16px] font-[330] text-black/40">
+              <p className="mb-6 text-[16px] font-[330] text-foreground/40">
                 Trusted by candidates from leading companies
               </p>
               <div className="flex flex-wrap items-center justify-center gap-8">
                 {companyItems.map((company) => (
                   <span
                     key={company}
-                    className="text-lg font-semibold tracking-wider text-black/20"
+                    className="text-lg font-semibold tracking-wider text-foreground/20"
                   >
                     {company}
                   </span>
@@ -144,21 +154,21 @@ export default function LandingPage() {
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FadeIn>
-            <h2 className="text-center text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-black">
+            <h2 className="text-center text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-foreground">
               Everything you need to prepare
             </h2>
           </FadeIn>
           <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <FadeIn key={feature.title} delay={index * 0.05}>
-                <div className="rounded-[8px] bg-[#f7f7f5] p-6 transition-all duration-200 hover:bg-[#f0f0ee]">
-                  <div className="mb-4 inline-flex rounded-full bg-white p-3">
-                    <feature.icon className="h-5 w-5 text-black" />
+                <div className="rounded-[8px] bg-secondary p-6 transition-all duration-200 hover:bg-muted">
+                  <div className="mb-4 inline-flex rounded-full bg-background p-3">
+                    <feature.icon className="h-5 w-5 text-foreground" />
                   </div>
-                  <h3 className="mb-2 text-[20px] font-[480] leading-[1.40] tracking-[-0.10px] text-black">
+                  <h3 className="mb-2 text-[20px] font-[480] leading-[1.40] tracking-[-0.10px] text-foreground">
                     {feature.title}
                   </h3>
-                  <p className="text-[16px] font-[330] leading-[1.45] text-black/60">
+                  <p className="text-[16px] font-[330] leading-[1.45] text-foreground/60">
                     {feature.description}
                   </p>
                 </div>
@@ -173,17 +183,17 @@ export default function LandingPage() {
         <ColorBlock variant="lime">
           <div className="mx-auto max-w-4xl">
             <FadeIn>
-              <p className="text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-black/40">
+              <p className="text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-foreground/40">
                 Built for every role
               </p>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <h2 className="mt-4 text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-black">
+              <h2 className="mt-4 text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-foreground">
                 Real interviews, real confidence
               </h2>
             </FadeIn>
             <FadeIn delay={0.2}>
-              <p className="mt-4 text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-black/70 max-w-2xl">
+              <p className="mt-4 text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-foreground/70 max-w-2xl">
                 Our AI platform simulates real interview environments with role-specific questions, 
                 timed responses, and instant feedback. Practice until you&apos;re ready for the real thing.
               </p>
@@ -191,8 +201,8 @@ export default function LandingPage() {
             <FadeIn delay={0.3}>
               <ul className="mt-8 space-y-4">
                 {limeFeatures.map((feat) => (
-                  <li key={feat} className="flex items-start gap-3 text-[18px] font-[320] leading-[1.45] text-black">
-                    <Check className="mt-0.5 h-5 w-5 shrink-0 text-black/60" />
+                  <li key={feat} className="flex items-start gap-3 text-[18px] font-[320] leading-[1.45] text-foreground">
+                    <Check className="mt-0.5 h-5 w-5 shrink-0 text-foreground/60" />
                     <span>{feat}</span>
                   </li>
                 ))}
@@ -215,17 +225,17 @@ export default function LandingPage() {
         <ColorBlock variant="navy">
           <div className="mx-auto max-w-4xl">
             <FadeIn>
-              <p className="text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-white/40">
+              <p className="text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-primary-foreground/40">
                 Track your growth
               </p>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <h2 className="mt-4 text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-white">
+              <h2 className="mt-4 text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-primary-foreground">
                 Your progress, your way
               </h2>
             </FadeIn>
             <FadeIn delay={0.2}>
-              <p className="mt-4 text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-white/60 max-w-2xl">
+              <p className="mt-4 text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-primary-foreground/60 max-w-2xl">
                 Detailed analytics, performance trends, and skill breakdowns help you 
                 identify strengths and target areas for improvement.
               </p>
@@ -234,13 +244,13 @@ export default function LandingPage() {
               <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-4">
                 {navyStats.map((stat) => (
                   <div key={stat.label} className="text-center">
-                    <p className="text-[48px] md:text-[64px] font-[340] leading-[1.10] tracking-[-0.96px] text-white">
+                    <p className="text-[48px] md:text-[64px] font-[340] leading-[1.10] tracking-[-0.96px] text-primary-foreground">
                       {stat.value}
                     </p>
-                    <p className="mt-2 text-[16px] font-[330] text-white/50">
+                    <p className="mt-2 text-[16px] font-[330] text-primary-foreground/50">
                       {stat.label}
                     </p>
-                  </div>
+                    </div>
                 ))}
               </div>
             </FadeIn>
@@ -253,17 +263,17 @@ export default function LandingPage() {
         <ColorBlock variant="coral">
           <div className="mx-auto max-w-4xl">
             <FadeIn>
-              <p className="text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-black/40">
+              <p className="text-[18px] font-[400] font-mono uppercase tracking-[0.54px] text-foreground/40">
                 For developers, by developers
               </p>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <h2 className="mt-4 text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-black">
+              <h2 className="mt-4 text-[26px] font-[540] leading-[1.35] tracking-[-0.26px] text-foreground">
                 Technical interview mastery
               </h2>
             </FadeIn>
             <FadeIn delay={0.2}>
-              <p className="mt-4 text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-black/70 max-w-2xl">
+              <p className="mt-4 text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-foreground/70 max-w-2xl">
                 From coding challenges to system design, our platform covers every aspect 
                 of the technical interview process.
               </p>
@@ -271,14 +281,14 @@ export default function LandingPage() {
             <FadeIn delay={0.3}>
               <div className="mt-10 grid gap-4 md:grid-cols-3">
                 {coralFeatures.map((feat) => (
-                  <div key={feat.title} className="rounded-[8px] bg-white/50 p-6">
-                    <div className="mb-3 inline-flex rounded-full bg-white p-2.5">
-                      <feat.icon className="h-5 w-5 text-black" />
+                  <div key={feat.title} className="rounded-[8px] bg-background/50 p-6">
+                    <div className="mb-3 inline-flex rounded-full bg-background p-2.5">
+                      <feat.icon className="h-5 w-5 text-foreground" />
                     </div>
-                    <h3 className="text-[18px] font-[480] leading-[1.40] tracking-[-0.10px] text-black">
+                    <h3 className="text-[18px] font-[480] leading-[1.40] tracking-[-0.10px] text-foreground">
                       {feat.title}
                     </h3>
-                    <p className="mt-1 text-[16px] font-[330] leading-[1.45] text-black/60">
+                    <p className="mt-1 text-[16px] font-[330] leading-[1.45] text-foreground/60">
                       {feat.desc}
                     </p>
                   </div>
@@ -293,29 +303,33 @@ export default function LandingPage() {
       <section className="py-24">
         <div className="mx-auto max-w-4xl px-4 text-center">
           <FadeIn>
-            <h2 className="text-[48px] md:text-[64px] font-[340] leading-[1.10] tracking-[-0.96px] text-black">
+            <h2 className="text-[48px] md:text-[64px] font-[340] leading-[1.10] tracking-[-0.96px] text-foreground">
               Ready to start?
             </h2>
           </FadeIn>
           <FadeIn delay={0.15}>
-            <p className="mx-auto mt-6 max-w-xl text-[20px] font-[330] leading-[1.40] tracking-[-0.14px] text-black/60">
-              Join thousands of successful candidates who prepared with MockAI. Start practicing today.
-            </p>
+            <p className="mx-auto mt-6 max-w-full whitespace-nowrap text-center text-[20px] font-light leading-[1.4] tracking-tight bg-gradient-to-r from-gray-400 to-black bg-clip-text text-transparent">
+  Join thousands of successful candidates who prepared with MockAI. Start practicing today.
+</p>
+           
           </FadeIn>
           <FadeIn delay={0.3}>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <FigmaButton variant="primary" href="/signup">
-                Get started for free
-                <ArrowRight className="h-4 w-4" />
+              <FigmaButton variant="primary" asChild>
+                <Link href="/signup">
+                  Sign up
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </FigmaButton>
-              <FigmaButton variant="secondary" href="/interview">
-                View demo
+              <FigmaButton variant="secondary" asChild>
+                <Link href="/interview">
+                  View demo
+                </Link>
               </FigmaButton>
             </div>
           </FadeIn>
         </div>
       </section>
-
       <Footer />
     </div>
   )

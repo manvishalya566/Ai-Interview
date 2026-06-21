@@ -1,21 +1,31 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, History, MessageSquare, LogOut,
-  Bot, Brain, CheckCircle, X, Menu, Mic, MicOff,
+  Bot, Brain, CheckCircle, X, Mic, MicOff,
   Play, Square, SkipForward, Code, BarChart3,
   TrendingUp, Award, ArrowRight,
-  User, Check, ChevronLeft, ChevronRight,
+  User, ChevronRight,
   Terminal, Lightbulb, RefreshCcw,
   Video, VideoOff, ThumbsUp, ThumbsDown,
   Database, Cpu, Shield, Layers, Monitor,
-  Clock as ClockIcon
+  Clock as ClockIcon, Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { Footer } from '@/components/ui/footer'
+import Interviewer3D from '@/components/Interviewer3D'
+import UserWebcam from '@/components/UserWebcam'
+import { useWebcam } from '@/hooks/useWebcam'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { useTimerInterval } from '@/hooks/useTimerInterval'
+import { useInterviewStore } from '@/stores/interview-store'
+import { QuestionCard } from '@/components/interview/QuestionCard'
+import { TranscriptionPanel } from '@/components/interview/TranscriptionPanel'
+import { AIFeedbackPanel } from '@/components/interview/AIFeedbackPanel'
+import { CategorySelector } from '@/components/interview/CategorySelector'
 
 const questionCategories = [
   { id: 'dsa', label: 'DSA', icon: Code, desc: 'Data Structures & Algorithms' },
@@ -27,29 +37,130 @@ const questionCategories = [
   { id: 'oops', label: 'OOPs', icon: Shield, desc: 'Object Oriented Prog.' },
 ]
 
-const sampleQuestions = [
-  {
-    id: 1,
-    question: "Explain the concept of Virtual DOM in React and how it improves performance compared to direct DOM manipulation.",
-    topic: 'React',
-    difficulty: 'Medium',
-    category: 'react',
-  },
-  {
-    id: 2,
-    question: "Design a URL shortening service like TinyURL. Walk through your system design approach including database schema, API design, and scalability considerations.",
-    topic: 'System Design',
-    difficulty: 'Hard',
-    category: 'system-design',
-  },
-  {
-    id: 3,
-    question: "Given an array of integers, find the two numbers that add up to a specific target. Optimize for O(n) time complexity.",
-    topic: 'DSA',
-    difficulty: 'Easy',
-    category: 'dsa',
-  },
-]
+const COOLDOWN_MS = 15000
+const lastApiCallRef = { current: 0 }
+
+const FALLBACK_QUESTIONS = {
+  dsa: [
+    "Explain the difference between an array and a linked list. When would you use one over the other?",
+    "Implement a function to detect if a linked list has a cycle. What is the time and space complexity?",
+    "Describe how a hash table works internally. How do you handle collisions?",
+    "What is the time complexity of binary search? Explain the algorithm and its prerequisites.",
+    "Explain the difference between BFS and DFS. When would you use each?",
+    "What is a stack and how is it different from a queue? Give real-world use cases.",
+    "Explain dynamic programming with an example. How is it different from recursion?",
+    "What is the two-pointer technique? Give an example problem where it's useful.",
+    "Explain how merge sort works. What is its time and space complexity?",
+    "What is a binary search tree? Describe its properties and common operations.",
+    "How would you find the kth largest element in an unsorted array?",
+    "Explain the sliding window pattern with an example problem.",
+    "What is the difference between min-heap and max-heap? How are heaps implemented?",
+    "Describe how you would implement an LRU cache from scratch.",
+    "Explain trie data structure. What problems does it solve efficiently?",
+  ],
+  react: [
+    "Explain the virtual DOM and how React uses it for performance optimization.",
+    "What is the difference between controlled and uncontrolled components in React?",
+    "Explain the useEffect hook lifecycle. How does the dependency array work?",
+    "What is prop drilling and how do you solve it? Compare Context API vs Redux.",
+    "Explain React.memo and useMemo. When should you use each?",
+    "How does React's reconciliation algorithm work? What is the role of keys?",
+    "Explain the difference between state and props in React components.",
+    "What are custom hooks? Create an example custom hook for window resize.",
+    "How does React handle event delegation? Explain synthetic events.",
+    "What is the difference between useRef and useState? When would you use useRef?",
+    "Explain Server Components in Next.js and how they differ from Client Components.",
+    "How would you optimize a React app that re-renders too often?",
+    "What is the useReducer hook and when is it better than useState?",
+    "Explain error boundaries in React. How do you implement one?",
+    "Describe the context API workflow. What are its limitations?",
+  ],
+  "system-design": [
+    "Design a URL shortening service like TinyURL. Discuss the key trade-offs.",
+    "How would you design a scalable chat application like WhatsApp?",
+    "Explain consistent hashing and why it's useful in distributed systems.",
+    "Design a rate limiter for a public API. Compare token bucket vs leaky bucket.",
+    "How would you design a distributed key-value store? Discuss CAP theorem.",
+    "Explain how CDNs work. How would you design one?",
+    "Design a real-time collaborative editor like Google Docs.",
+    "What is load balancing? Compare round-robin vs least connections strategies.",
+    "How would you design a notification system for millions of users?",
+    "Explain database sharding. What strategies exist for choosing a shard key?",
+    "Design a social media feed API. How do you handle scaling?",
+    "What is eventual consistency? When is it acceptable to use?",
+    "Describe how you would design a video streaming platform like YouTube.",
+    "Explain the differences between SQL and NoSQL databases for system design.",
+    "How would you design a fault-tolerant microservices architecture?",
+  ],
+  backend: [
+    "Explain RESTful API design principles. What are the key HTTP methods and status codes?",
+    "What is middleware in Express.js? Create an example authentication middleware.",
+    "Explain JWT authentication flow. How do you handle token refresh?",
+    "What is the difference between SQL and NoSQL databases? When would you use each?",
+    "Explain database indexing. How does it improve query performance?",
+    "What is idempotency in APIs? Why is it important and how do you implement it?",
+    "Describe the difference between vertical and horizontal scaling.",
+    "Explain how you would design a rate-limited API endpoint.",
+    "What is CORS? How does it work and how do you configure it?",
+    "Explain the event loop in Node.js. How does it handle asynchronous operations?",
+    "What is a reverse proxy? How does it differ from a forward proxy?",
+    "Describe the repository pattern and its benefits in backend architecture.",
+    "How do you handle database migrations in a production environment?",
+    "Explain the difference between authentication and authorization.",
+    "What is WebSocket? How does it differ from HTTP polling?",
+  ],
+  hr: [
+    "Tell me about a time you had a conflict with a team member. How did you resolve it?",
+    "Describe a project where you took leadership. What was the outcome?",
+    "Tell me about a time you failed. What did you learn from the experience?",
+    "Where do you see yourself in five years? How does this role align with your goals?",
+    "Describe a situation where you had to work under tight deadlines.",
+    "Tell me about a time you received constructive criticism. How did you respond?",
+    "Why do you want to work at this company? What excites you about this role?",
+    "Describe a complex technical problem you solved. Walk me through your approach.",
+    "Tell me about a time you had to persuade someone to adopt your idea.",
+    "How do you stay updated with the latest technologies in your field?",
+    "Describe a situation where you went above and beyond your job requirements.",
+    "Tell me about a time you worked on a cross-functional team. What was your role?",
+    "How do you handle multiple priorities and competing deadlines?",
+    "Describe a time you mentored or coached a junior team member.",
+    "Tell me about a project that required significant collaboration to succeed.",
+  ],
+  dbms: [
+    "Explain the difference between INNER JOIN and LEFT JOIN with examples.",
+    "What is normalization? Explain 1NF, 2NF, and 3NF with examples.",
+    "How does database indexing work? What is the difference between clustered and non-clustered indexes?",
+    "Explain ACID properties in database transactions.",
+    "What is the difference between SQL and NoSQL databases? When would you choose NoSQL?",
+    "Explain what a transaction is and how it ensures data integrity.",
+    "What is denormalization? When and why would you use it?",
+    "Explain the N+1 query problem and how to solve it.",
+    "What is a foreign key? How does it enforce referential integrity?",
+    "Explain the difference between UNION and UNION ALL in SQL.",
+    "What is database sharding? What are the common strategies?",
+    "Explain the CAP theorem and how it applies to distributed databases.",
+    "What is a deadlock in databases? How do you prevent or resolve it?",
+    "Explain the concept of database replication. What are the different types?",
+    "How would you optimize a slow SQL query? What tools would you use?",
+  ],
+  oops: [
+    "Explain the four pillars of OOP: encapsulation, inheritance, polymorphism, and abstraction.",
+    "What is the difference between an abstract class and an interface? When do you use each?",
+    "Explain the SOLID principles. Give an example of the Single Responsibility Principle.",
+    "What is dependency injection? How does it improve code maintainability?",
+    "Explain the difference between composition and inheritance. When would you prefer composition?",
+    "What is a design pattern? Name three creational patterns and their use cases.",
+    "Explain the Observer pattern. Give a real-world example of where it's used.",
+    "What is method overloading vs method overriding? How do they differ?",
+    "Explain the Factory pattern. How does it help with object creation?",
+    "What is the Strategy pattern? When would you use it?",
+    "Explain how polymorphism works in both compile-time and runtime contexts.",
+    "What is a singleton pattern? What are its drawbacks and alternatives?",
+    "Explain the Decorator pattern. How does it differ from inheritance?",
+    "What is the Law of Demeter? Why is it important in OOP design?",
+    "Describe the Adapter pattern. How does it help integrate incompatible interfaces?",
+  ],
+}
 
 const aiFeedbackData = [
   { label: 'Confidence', value: 82 },
@@ -80,21 +191,10 @@ const aiInsightsData = [
   { label: 'AI Suggestion', value: 'Practice DSA', icon: Bot, detail: 'Complete 3 more mock interviews this week' },
 ]
 
-const pastelAccents = {
-  lime: '#dceeb1',
-  lilac: '#c5b0f4',
-  mint: '#c8e6cd',
-  coral: '#f3c9b6',
-  pink: '#efd4d4',
-  cream: '#f4ecd6',
-}
-
 function AnimatedCounter({ value, suffix = '' }) {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true })
   const [count, setCount] = useState(0)
   useEffect(() => {
-    if (!isInView) return
     const duration = 2000
     const steps = 60
     const increment = value / steps
@@ -109,23 +209,21 @@ function AnimatedCounter({ value, suffix = '' }) {
       }
     }, duration / steps)
     return () => clearInterval(timer)
-  }, [isInView, value])
-  return (
-    <span ref={ref}>{count}{suffix}</span>
-  )
+  }, [value])
+  return <span ref={ref}>{count}{suffix}</span>
 }
 
 function SectionHeader({ title, subtitle, action }) {
   return (
     <div className="mb-6 flex items-end justify-between">
       <div>
-        <h2 className="text-xl font-bold text-black/90">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-black/40">{subtitle}</p>}
+        <h2 className="text-xl font-bold text-foreground/90">{title}</h2>
+        {subtitle && <p className="mt-1 text-sm text-foreground/40">{subtitle}</p>}
       </div>
       {action && (
         <Link
           href={action.href}
-          className="group flex items-center gap-1 text-sm text-black/60 transition-colors hover:text-black"
+          className="group flex items-center gap-1 text-sm text-foreground/60 transition-colors hover:text-foreground"
         >
           {action.label}
           <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -135,129 +233,181 @@ function SectionHeader({ title, subtitle, action }) {
   )
 }
 
-function FigmaButton({ children, onClick, variant = 'primary', icon: Icon, disabled, className }) {
-  const baseClasses = 'inline-flex items-center gap-2 rounded-[50px] text-[20px] font-[480] transition-all duration-200'
-  const variants = {
-    primary: 'bg-black text-white px-5 py-2.5 hover:bg-black/80',
-    secondary: 'border border-[#e6e6e6] bg-white text-black px-5 py-2.5 hover:bg-[#f7f7f5]',
-    ghost: 'bg-white text-black px-3 py-2 hover:bg-[#f7f7f5] rounded-full',
-    danger: 'bg-black text-white px-5 py-2.5 hover:bg-black/80',
-    icon: 'bg-[#f7f7f5] text-black rounded-full h-10 w-10 p-0 flex items-center justify-center hover:bg-[#e6e6e6]',
-  }
-
-  return (
-    <motion.button
-      whileHover={!disabled ? { scale: 1.02 } : {}}
-      whileTap={!disabled ? { scale: 0.98 } : {}}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        baseClasses,
-        variants[variant],
-        disabled && 'cursor-not-allowed opacity-50',
-        className
-      )}
-    >
-      {Icon && <Icon className="h-5 w-5" />}
-      {children}
-    </motion.button>
-  )
-}
+const defaultCode = '// Write your solution here\n\nfunction solve(input) {\n  // Your code\n  return null;\n}'
 
 export default function InterviewPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [interviewState, setInterviewState] = useState('idle')
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [isMuted, setIsMuted] = useState(false)
-  const [isCameraOn, setIsCameraOn] = useState(true)
-  const [showSummary, setShowSummary] = useState(false)
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState('react')
   const [activeTab, setActiveTab] = useState('interview')
   const [language, setLanguage] = useState('javascript')
-  const [code, setCode] = useState(
-    '// Write your solution here\n\nfunction solve(input) {\n  // Your code\n  return null;\n}'
-  )
+  const [code, setCode] = useState(defaultCode)
   const [codeOutput, setCodeOutput] = useState('')
-  const [timerSeconds, setTimerSeconds] = useState(0)
-  const [transcript, setTranscript] = useState('')
-  const [fullTranscript, setFullTranscript] = useState([])
-  const timerRef = useRef(null)
 
-  const currentQuestion = sampleQuestions[currentQuestionIndex] || sampleQuestions[0]
-  const totalQuestions = sampleQuestions.length
+  const webcam = useWebcam()
+  const { isListening } = useSpeechRecognition()
 
-  useEffect(() => {
-    if (interviewState === 'active') {
-      timerRef.current = setInterval(() => {
-        setTimerSeconds((prev) => prev + 1)
-      }, 1000)
-    } else {
-      clearInterval(timerRef.current)
-    }
-    return () => clearInterval(timerRef.current)
-  }, [interviewState])
+  useTimerInterval()
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  const requestLockRef = useRef({ isLoading: false })
+  const clickLockRef = useRef(false)
+
+  const interviewState = useInterviewStore((s) => s.interviewState)
+  const isSpeaking = useInterviewStore((s) => s.isSpeaking)
+  const isGenerating = useInterviewStore((s) => s.isGenerating)
+  const currentQuestion = useInterviewStore((s) => s.currentQuestion)
+  const selectedCategory = useInterviewStore((s) => s.selectedCategory)
+  const questionPool = useInterviewStore((s) => s.questionPool)
+  const currentQIdx = useInterviewStore((s) => s.currentQIdx)
+  const askedQuestions = useInterviewStore((s) => s.askedQuestions)
+  const errorMessage = useInterviewStore((s) => s.errorMessage)
+
+  const getFallbackQuestions = (categoryId, count) => {
+    const pool = FALLBACK_QUESTIONS[categoryId] || FALLBACK_QUESTIONS.react
+    const shuffled = [...pool].sort(() => Math.random() - 0.5)
+    const category = questionCategories.find(c => c.id === categoryId)
+    return shuffled.slice(0, count).map(q => ({
+      id: Date.now() + Math.random(),
+      question: q,
+      topic: category?.label || 'General',
+      difficulty: 'Medium',
+      category: categoryId,
+    }))
   }
 
-  const handleStartInterview = () => {
-    setInterviewState('active')
-    setTimerSeconds(0)
-    setTranscript('')
-    setFullTranscript([])
-    const words = [
-      "I believe React's Virtual DOM is...",
-      "It creates a lightweight representation of the real DOM...",
-      "When state changes, React compares the virtual DOM with its previous version...",
-      "This diffing process is called reconciliation...",
-      "It batches updates and only applies minimal changes to the actual DOM...",
+  const generateBatchQuestions = async (count = 3) => {
+    const now = Date.now()
+    const elapsed = now - lastApiCallRef.current
+
+    if (requestLockRef.current.isLoading) {
+      return []
+    }
+
+    if (elapsed < COOLDOWN_MS) {
+      return getFallbackQuestions(selectedCategory, count)
+    }
+
+    requestLockRef.current.isLoading = true
+    useInterviewStore.getState().setIsGenerating(true)
+    useInterviewStore.getState().setErrorMessage(null)
+
+    const allPrevious = [
+      ...askedQuestions.map(q => q),
+      ...questionPool.map(q => q.question),
     ]
-    let i = 0
-    const interval = setInterval(() => {
-      if (i < words.length) {
-        setTranscript(words[i])
-        setFullTranscript((prev) => [...prev, { text: words[i], time: formatTime(timerSeconds) }])
-        i++
-      } else {
-        clearInterval(interval)
-      }
-    }, 2500)
-  }
+    const uniquePrevious = [...new Set(allPrevious)]
 
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < totalQuestions - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1)
-      setTranscript('')
-      setTimerSeconds(0)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+    try {
+      const res = await fetch("/api/generate-question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          role: "Software Engineer",
+          techstack: selectedCategory,
+          level: "Medium",
+          previousQuestions: uniquePrevious,
+          count,
+        }),
+      })
+      clearTimeout(timeoutId)
+
+      if (!res.ok) {
+        return getFallbackQuestions(selectedCategory, count)
+      }
+
+      let data
+      try {
+        data = await res.json()
+      } catch {
+        return getFallbackQuestions(selectedCategory, count)
+      }
+
+      if (!data.success || !Array.isArray(data.questions) || data.questions.length === 0) {
+        return getFallbackQuestions(selectedCategory, count)
+      }
+
+      lastApiCallRef.current = Date.now()
+      const category = questionCategories.find(c => c.id === selectedCategory)
+
+      return data.questions
+        .filter(q => q && q.trim().length > 10)
+        .map(q => ({
+          id: Date.now() + Math.random(),
+          question: q.replace(/^["'\s]+|["'\s]+$/g, '').trim(),
+          topic: category?.label || 'General',
+          difficulty: 'Medium',
+          category: selectedCategory,
+        }))
+    } catch (err) {
+      clearTimeout(timeoutId)
+      return getFallbackQuestions(selectedCategory, count)
+    } finally {
+      requestLockRef.current.isLoading = false
+      useInterviewStore.getState().setIsGenerating(false)
     }
   }
 
-  const handleEndInterview = () => {
-    setInterviewState('completed')
-    setShowSummary(true)
-    clearInterval(timerRef.current)
-  }
+  const handleStartInterview = useCallback(async () => {
+    if (clickLockRef.current || requestLockRef.current.isLoading) return
+    clickLockRef.current = true
+
+    useInterviewStore.getState().setInterviewState('active')
+    useInterviewStore.getState().resetTimer()
+    useInterviewStore.getState().clearTranscript()
+    useInterviewStore.getState().setQuestionPool([])
+    useInterviewStore.getState().setCurrentQIdx(0)
+    useInterviewStore.getState().setAskedQuestions([])
+    webcam.startCamera()
+
+    try {
+      const questions = await generateBatchQuestions(3)
+      useInterviewStore.getState().setQuestionPool(questions)
+      useInterviewStore.getState().setCurrentQIdx(0)
+    } finally {
+      clickLockRef.current = false
+    }
+  }, [selectedCategory, askedQuestions, questionPool, webcam])
+
+  const handleNextQuestion = useCallback(async () => {
+    if (clickLockRef.current || requestLockRef.current.isLoading) return
+    clickLockRef.current = true
+
+    try {
+      useInterviewStore.getState().resetTimer()
+      useInterviewStore.getState().clearTranscript()
+
+      const store = useInterviewStore.getState()
+      const nextIdx = store.currentQIdx + 1
+
+      if (nextIdx < store.questionPool.length) {
+        store.setCurrentQIdx(nextIdx)
+      } else {
+        const newQuestions = await generateBatchQuestions(3)
+        useInterviewStore.getState().setQuestionPool(prev => [...prev, ...newQuestions])
+        useInterviewStore.getState().setCurrentQIdx(prev => prev + 1)
+      }
+    } finally {
+      clickLockRef.current = false
+    }
+  }, [selectedCategory, askedQuestions])
+
+  const handleEndInterview = useCallback(() => {
+    useInterviewStore.getState().setInterviewState('completed')
+  }, [])
+
+  const handleRetry = useCallback(() => {
+    handleStartInterview()
+  }, [handleStartInterview])
 
   const handleRunCode = () => {
     setCodeOutput('> Running code...\n> Compilation successful\n> Output: [1, 2, 3, 4, 5]\n> Execution time: 0.042ms')
   }
 
-  const progressPercent = ((currentQuestionIndex + 1) / totalQuestions) * 100
-
-  const sidebarLinks = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/interview', label: 'Interview', icon: Bot },
-    { href: '/history', label: 'History', icon: History },
-    { href: '/feedback', label: 'Feedback', icon: MessageSquare },
-  ]
-
   return (
-    <div className="flex w-full min-h-screen bg-white text-black">
+    <div className="flex w-full min-h-screen bg-canvas text-foreground">
       <AnimatePresence>
         {mobileSidebarOpen && (
           <motion.div
@@ -265,7 +415,7 @@ export default function InterviewPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+            className="fixed inset-0 z-40 bg-foreground/20 lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -273,7 +423,7 @@ export default function InterviewPage() {
       <motion.aside
         animate={{ width: sidebarOpen ? 240 : 72 }}
         className={cn(
-          'fixed left-0 top-0 z-50 hidden h-full flex-col border-r border-[#e6e6e6] bg-white transition-all duration-300 lg:flex',
+          'fixed left-0 top-0 z-50 hidden h-full flex-col border-r border-border bg-background transition-all duration-300 lg:flex',
           mobileSidebarOpen && '!flex'
         )}
       >
@@ -284,7 +434,7 @@ export default function InterviewPage() {
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[#e6e6e6] bg-white lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-border bg-background lg:hidden"
             >
               <MobileSidebarContent onClose={() => setMobileSidebarOpen(false)} />
             </motion.div>
@@ -315,8 +465,8 @@ export default function InterviewPage() {
                   className={cn(
                     'flex items-center gap-2 rounded-[50px] px-5 py-2.5 text-[20px] font-[480] transition-all duration-200',
                     activeTab === tab.id
-                      ? 'bg-black text-white'
-                      : 'bg-white text-black border border-[#e6e6e6] hover:bg-[#f7f7f5]'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-foreground border border-border hover:bg-secondary'
                   )}
                 >
                   <tab.icon className="h-5 w-5" />
@@ -328,354 +478,108 @@ export default function InterviewPage() {
             {/* Interview Tab */}
             {activeTab === 'interview' && (
               <>
-                <div className="grid gap-6 xl:grid-cols-5">
-                  {/* LEFT - AI Interviewer */}
+                {/* Split Screen - AI Interviewer + User Webcam */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {/* Left: AI Interviewer Video */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6 xl:col-span-3"
+                    className="relative"
                   >
-                    {/* AI Interviewer Card */}
-                    <div className="rounded-[16px] border border-[#e6e6e6] bg-white p-6">
-                      <div className="flex items-start gap-5">
-                        {/* AI Avatar */}
-                        <div className="relative shrink-0">
-                          <div className="flex h-20 w-20 items-center justify-center rounded-[16px] bg-black">
-                            <Bot className="h-10 w-10 text-white" />
-                          </div>
-                          {interviewState === 'active' && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-[#1ea64a] ring-2 ring-white"
-                            >
-                              <motion.div
-                                animate={{ scale: [1, 1.3, 1] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                                className="absolute inset-0 rounded-full bg-[#1ea64a]/50"
-                              />
-                            </motion.div>
-                          )}
-                        </div>
-
-                        {/* AI Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-black/90">AI Interviewer</h3>
-                            {interviewState === 'active' && (
-                              <motion.span
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="rounded-full bg-[#1ea64a]/10 px-2.5 py-0.5 text-xs font-medium text-[#1ea64a]"
-                              >
-                                Listening
-                              </motion.span>
+                    <Interviewer3D
+                      showEmojiReactions={true}
+                    />
+                    {interviewState === 'active' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10"
+                      >
+                        <div className="flex items-center gap-2 rounded-full bg-background/80 backdrop-blur-xl border border-white/10 px-4 py-1.5 shadow-lg">
+                          <motion.div
+                            animate={isSpeaking ? { scale: [1, 1.3, 1] } : {}}
+                            transition={{ duration: 0.8, repeat: Infinity }}
+                            className={cn(
+                              'h-2 w-2 rounded-full',
+                              isSpeaking ? 'bg-accent' : isGenerating ? 'bg-yellow-400' : 'bg-semantic-success'
                             )}
-                          </div>
-                          <p className="text-sm text-black/40">Senior Technical Interviewer at MockAI</p>
-
-                          <div className="mt-3 flex items-center gap-4">
-                            <div className="flex items-center gap-2 rounded-xl bg-[#f7f7f5] px-3 py-1.5">
-                              <ClockIcon className="h-4 w-4 text-black/60" />
-                              <span className="font-mono text-sm text-black/70">{formatTime(timerSeconds)}</span>
-                            </div>
-                            {interviewState === 'active' && (
-                              <motion.div
-                                animate={{ opacity: [1, 0.5, 1] }}
-                                transition={{ duration: 1.5, repeat: Infinity }}
-                                className="flex items-center gap-1.5"
-                              >
-                                <span className="h-2 w-2 rounded-full bg-black" />
-                                <span className="text-xs text-black/40">Recording</span>
-                              </motion.div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Question */}
-                      <div className="mt-6">
-                        <div className="mb-3 flex items-center gap-2">
-                          <span className={cn(
-                            'rounded-full px-2.5 py-0.5 text-xs font-medium',
-                            currentQuestion.difficulty === 'Easy' ? 'bg-[#1ea64a]/10 text-[#1ea64a]' :
-                            currentQuestion.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-600' :
-                            'bg-black/10 text-black'
-                          )}>
-                            {currentQuestion.difficulty}
-                          </span>
-                          <span className="rounded-full bg-[#f7f7f5] px-2.5 py-0.5 text-xs font-medium text-black/70">
-                            {currentQuestion.topic}
-                          </span>
-                          <span className="rounded-full bg-[#f7f7f5] px-2.5 py-0.5 text-xs font-medium text-black/70">
-                            Q {currentQuestionIndex + 1}/{totalQuestions}
+                          />
+                          <span className="text-xs font-medium text-foreground/70">
+                            {isSpeaking ? 'Speaking' : isGenerating ? 'Thinking' : 'Listening'}
                           </span>
                         </div>
-
-                        <motion.div
-                          key={currentQuestion.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="rounded-[16px] bg-[#f7f7f5] p-5"
-                        >
-                          <p className="text-lg leading-relaxed text-black/80">
-                            {currentQuestion.question}
-                          </p>
-                        </motion.div>
-
-                        <div className="mt-4">
-                          <div className="mb-1.5 flex items-center justify-between text-xs text-black/40">
-                            <span>Question Progress</span>
-                            <span>{Math.round(progressPercent)}%</span>
-                          </div>
-                          <div className="h-1.5 overflow-hidden rounded-full bg-[#f1f1f1]">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${progressPercent}%` }}
-                              transition={{ duration: 0.5, ease: 'easeOut' }}
-                              className="h-full rounded-full bg-black"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Transcription Area */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="rounded-[16px] border border-[#e6e6e6] bg-white p-5"
-                    >
-                      <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-black/70">Live Transcription</h3>
-                        {interviewState === 'active' && (
-                          <div className="flex items-center gap-2">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1, repeat: Infinity }}
-                              className="flex items-center gap-1"
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full bg-black" />
-                              <span className="h-1.5 w-1.5 rounded-full bg-black" />
-                              <span className="h-1.5 w-1.5 rounded-full bg-black" />
-                            </motion.div>
-                            <span className="text-xs text-black">Live</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-h-[80px] rounded-xl bg-[#f7f7f5] p-4">
-                        {interviewState === 'idle' ? (
-                          <p className="text-sm italic text-black/30">Your response will appear here once you start the interview...</p>
-                        ) : (
-                          <motion.p
-                            key={transcript}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-sm text-black/70"
-                          >
-                            {transcript || 'Waiting for response...'}
-                          </motion.p>
-                        )}
-                      </div>
-
-                      {interviewState === 'active' && (
-                        <div className="mt-3 flex items-center gap-0.5">
-                          {Array.from({ length: 40 }).map((_, i) => (
-                            <motion.div
-                              key={i}
-                              animate={{
-                                height: [4, Math.random() * 24 + 4, 4],
-                              }}
-                              transition={{
-                                duration: 0.6 + Math.random() * 0.4,
-                                repeat: Infinity,
-                                delay: i * 0.05,
-                                ease: 'easeInOut',
-                              }}
-                              className="w-1 rounded-full bg-black/30"
-                              style={{ height: 4 }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
+                      </motion.div>
+                    )}
                   </motion.div>
 
-                  {/* RIGHT - Webcam + Controls + Feedback */}
+                  {/* Right: User Webcam + Controls */}
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6 xl:col-span-2"
+                    className="relative flex flex-col gap-3"
                   >
-                    {/* Webcam Preview */}
-                    <div className="group relative overflow-hidden rounded-[16px] border border-[#e6e6e6] bg-white">
-                      <div className="aspect-[4/3] bg-[#f7f7f5]">
-                        {isCameraOn ? (
-                          <div className="relative flex h-full items-center justify-center">
-                            <div className="absolute inset-0 opacity-[0.03]" style={{
-                              backgroundImage: 'linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)',
-                              backgroundSize: '40px 40px'
-                            }} />
-                            <div className="flex flex-col items-center gap-3">
-                              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/10 ring-2 ring-black/20">
-                                <User className="h-10 w-10 text-black/40" />
-                              </div>
-                              <span className="text-sm text-black/40">Camera Active</span>
-                            </div>
-                            <div className="absolute top-2 left-2 flex items-center gap-2">
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-black">
-                                <div className="h-2 w-2 rounded-full bg-white" />
-                              </div>
-                              <span className="text-xs font-medium text-black/60">CAM 1</span>
-                            </div>
-                            {interviewState === 'active' && (
-                              <motion.div
-                                animate={{ opacity: [0, 1, 0] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                                className="absolute top-2 right-2 h-2 w-2 rounded-full bg-black"
-                              />
+                    <UserWebcam
+                      videoRef={webcam.videoRef}
+                      cameraOn={webcam.cameraOn}
+                      micOn={webcam.micOn}
+                      error={webcam.error}
+                      loading={webcam.loading}
+                      interviewState={interviewState}
+                    />
+
+                    {interviewState !== 'idle' && interviewState !== 'completed' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex items-center justify-center gap-2"
+                      >
+                        <div className="flex items-center gap-2 rounded-full bg-background/80 backdrop-blur-xl border border-white/10 px-3 py-2 shadow-lg">
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={webcam.toggleMic}
+                            className={cn(
+                              'flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200',
+                              webcam.micOn ? 'bg-secondary hover:bg-border' : 'bg-red-500/20 text-red-500'
                             )}
-                          </div>
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <div className="flex flex-col items-center gap-3">
-                              <VideoOff className="h-12 w-12 text-black/20" />
-                              <span className="text-sm text-black/30">Camera Off</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Interview Controls */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 }}
-                      className="rounded-[16px] border border-[#e6e6e6] bg-white p-5"
-                    >
-                      <div className="flex flex-wrap items-center justify-center gap-3">
-                        {interviewState === 'idle' ? (
-                          <FigmaButton icon={Play} onClick={handleStartInterview}>
-                            Start Interview
-                          </FigmaButton>
-                        ) : interviewState === 'active' ? (
-                          <>
-                            <FigmaButton variant="secondary" onClick={() => setInterviewState('paused')}>
-                              <Square className="h-5 w-5" />
-                              Pause
-                            </FigmaButton>
-                            {currentQuestionIndex < totalQuestions - 1 && (
-                              <FigmaButton icon={SkipForward} onClick={handleNextQuestion}>
-                                Next Question
-                              </FigmaButton>
-                            )}
-                            <FigmaButton variant="danger" icon={Square} onClick={handleEndInterview}>
-                              End Interview
-                            </FigmaButton>
-                          </>
-                        ) : interviewState === 'paused' ? (
-                          <>
-                            <FigmaButton icon={Play} onClick={() => setInterviewState('active')}>
-                              Resume
-                            </FigmaButton>
-                            <FigmaButton variant="danger" icon={Square} onClick={handleEndInterview}>
-                              End Interview
-                            </FigmaButton>
-                          </>
-                        ) : null}
-
-                        {interviewState !== 'idle' && interviewState !== 'completed' && (
-                          <>
-                            <FigmaButton
-                              variant="icon"
-                              onClick={() => setIsMuted(!isMuted)}
-                            >
-                              {isMuted ? <MicOff className="h-4 w-4 text-black" /> : <Mic className="h-4 w-4 text-black" />}
-                            </FigmaButton>
-                            <FigmaButton
-                              variant="icon"
-                              onClick={() => setIsCameraOn(!isCameraOn)}
-                            >
-                              {isCameraOn ? <Video className="h-4 w-4 text-black" /> : <VideoOff className="h-4 w-4 text-black" />}
-                            </FigmaButton>
-                          </>
-                        )}
-                      </div>
-                    </motion.div>
-
-                    {/* AI Feedback Cards */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="rounded-[16px] border border-[#e6e6e6] bg-white p-5"
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-black/70">Live AI Analysis</h3>
-                        <Bot className="h-4 w-4 text-black/60" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        {aiFeedbackData.map((item, i) => (
-                          <motion.div
-                            key={item.label}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 + i * 0.05 }}
-                            className="group rounded-xl bg-[#f7f7f5] p-3 transition-all duration-200 hover:bg-[#e6e6e6]"
                           >
-                            <div className="mb-2 flex items-center justify-between">
-                              <span className="text-xs text-black/40">{item.label}</span>
-                              <span className="text-xs font-semibold text-black/70">{item.value}%</span>
-                            </div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-white">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${item.value}%` }}
-                                transition={{ duration: 1, delay: 0.3 + i * 0.08, ease: 'easeOut' }}
-                                className="h-full rounded-full bg-black/30"
-                              />
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
+                            {webcam.micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                          </motion.button>
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={webcam.toggleCamera}
+                            className={cn(
+                              'flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200',
+                              webcam.cameraOn ? 'bg-secondary hover:bg-border' : 'bg-red-500/20 text-red-500'
+                            )}
+                          >
+                            {webcam.cameraOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 </div>
 
-                {/* Question Categories */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
-                >
-                  <SectionHeader title="Question Categories" subtitle="Select a category to practice specific topics" />
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
-                    {questionCategories.map((cat) => (
-                      <motion.button
-                        key={cat.id}
-                        whileHover={{ scale: 1.03, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className={cn(
-                          'group relative overflow-hidden rounded-[12px] border p-4 text-left transition-all duration-200',
-                          selectedCategory === cat.id
-                            ? 'border-black/40 bg-[#f7f7f5]'
-                            : 'border-[#e6e6e6] bg-white hover:border-black/20'
-                        )}
-                      >
-                        <div className="relative z-10 flex flex-col items-center gap-2">
-                          <div className="rounded-xl bg-[#f7f7f5] p-2.5 border border-[#e6e6e6]">
-                            <cat.icon className="h-4 w-4 text-black/60" />
-                          </div>
-                          <span className="text-sm font-medium text-black/70 transition-colors group-hover:text-black">{cat.label}</span>
-                        </div>
-                      </motion.button>
-                    ))}
+                {/* Question + Controls + Feedback Row */}
+                <div className="grid gap-4 xl:grid-cols-3">
+                  {/* Question & Transcription Column */}
+                  <div className="space-y-4 xl:col-span-2">
+                    <QuestionCard
+                      onStart={handleStartInterview}
+                      onNext={handleNextQuestion}
+                      onEnd={handleEndInterview}
+                      onRetry={handleRetry}
+                    />
+                    <TranscriptionPanel />
                   </div>
-                </motion.div>
+
+                  {/* AI Feedback Column */}
+                  <AIFeedbackPanel />
+                </div>
+
+                {/* Question Categories */}
+                <CategorySelector />
               </>
             )}
 
@@ -688,21 +592,21 @@ export default function InterviewPage() {
               >
                 <div className="grid gap-6 lg:grid-cols-3">
                   {/* Editor */}
-                  <div className="rounded-[16px] border border-[#e6e6e6] bg-white overflow-hidden lg:col-span-2">
-                    <div className="flex items-center justify-between border-b border-[#e6e6e6] px-4 py-3">
+                  <div className="rounded-[16px] border border-border bg-background overflow-hidden lg:col-span-2">
+                    <div className="flex items-center justify-between border-b border-border px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex gap-1.5">
-                          <div className="h-3 w-3 rounded-full bg-black/20" />
-                          <div className="h-3 w-3 rounded-full bg-black/20" />
-                          <div className="h-3 w-3 rounded-full bg-black/20" />
+                          <div className="h-3 w-3 rounded-full bg-foreground/20" />
+                          <div className="h-3 w-3 rounded-full bg-foreground/20" />
+                          <div className="h-3 w-3 rounded-full bg-foreground/20" />
                         </div>
-                        <span className="text-sm text-black/40">solution.js</span>
+                        <span className="text-sm text-foreground/40">solution.js</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <select
                           value={language}
                           onChange={(e) => setLanguage(e.target.value)}
-                          className="rounded-[50px] border border-[#e6e6e6] bg-white px-3 py-1.5 text-xs text-black/60 focus:outline-none"
+                          className="rounded-[50px] border border-border bg-background px-3 py-1.5 text-xs text-foreground/60 focus:outline-none"
                         >
                           <option value="javascript">JavaScript</option>
                           <option value="python">Python</option>
@@ -710,14 +614,18 @@ export default function InterviewPage() {
                           <option value="cpp">C++</option>
                           <option value="typescript">TypeScript</option>
                         </select>
-                        <FigmaButton icon={Terminal} onClick={handleRunCode}>
+                        <button
+                          onClick={handleRunCode}
+                          className="inline-flex items-center gap-2 rounded-[50px] bg-primary text-primary-foreground px-5 py-2.5 text-[20px] font-[480] hover:bg-foreground/80 transition-all duration-200"
+                        >
+                          <Terminal className="h-5 w-5" />
                           Run
-                        </FigmaButton>
+                        </button>
                       </div>
                     </div>
 
                     <div className="relative">
-                      <div className="absolute left-0 top-0 flex flex-col gap-1 px-4 py-4 text-xs text-black/20 select-none font-mono">
+                      <div className="absolute left-0 top-0 flex flex-col gap-1 px-4 py-4 text-xs text-foreground/20 select-none font-mono">
                         {Array.from({ length: 15 }).map((_, i) => (
                           <span key={i}>{i + 1}</span>
                         ))}
@@ -725,477 +633,290 @@ export default function InterviewPage() {
                       <textarea
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
-                        className="w-full min-h-[350px] bg-transparent pl-12 pr-4 py-4 font-mono text-sm text-black/80 placeholder:text-black/20 focus:outline-none resize-none"
+                        className="w-full min-h-[350px] bg-transparent pl-12 pr-4 py-4 font-mono text-sm text-foreground/80 placeholder:text-foreground/20 focus:outline-none resize-none"
                         spellCheck={false}
                       />
                     </div>
                   </div>
 
                   {/* Output Panel */}
-                  <div className="rounded-[16px] border border-[#e6e6e6] bg-white overflow-hidden">
-                    <div className="flex items-center gap-2 border-b border-[#e6e6e6] px-4 py-3">
-                      <Terminal className="h-4 w-4 text-black/60" />
-                      <span className="text-sm font-medium text-black/60">Output</span>
+                  <div className="rounded-[16px] border border-border bg-background overflow-hidden">
+                    <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+                      <Terminal className="h-4 w-4 text-foreground/60" />
+                      <span className="text-sm font-medium text-foreground/60">Output</span>
                     </div>
-                    <div className="p-4 font-mono text-sm text-black/60 min-h-[350px] whitespace-pre-wrap">
+                    <div className="p-4 font-mono text-sm text-foreground/60 min-h-[350px] whitespace-pre-wrap">
                       {codeOutput || '> Ready to run your code...'}
                     </div>
                   </div>
                 </div>
 
                 {/* Coding Challenge Info */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
-                >
+                <div className="rounded-[16px] border border-border bg-background p-6">
                   <div className="flex items-start gap-4">
-                    <div className="rounded-xl bg-[#f7f7f5] p-3 border border-[#e6e6e6]">
-                      <Code className="h-6 w-6 text-black/60" />
+                    <div className="rounded-xl bg-secondary p-3 border border-border">
+                      <Code className="h-6 w-6 text-foreground/60" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-black/90">Two Sum Problem</h3>
-                      <p className="mt-1 text-sm text-black/50">
-                        Given an array of integers nums and an integer target, return indices of the two numbers
-                        such that they add up to target. You may assume that each input would have exactly one solution.
+                      <h3 className="text-lg font-semibold text-foreground/80">Challenge</h3>
+                      <p className="mt-2 text-sm text-foreground/60 leading-relaxed">
+                        Write a function that finds the longest palindromic substring in a given string.
+                        For example, in the string &quot;babad&quot;, the longest palindromic substring is &quot;bab&quot; (or &quot;aba&quot;).
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-[#1ea64a]/10 px-3 py-1 text-xs font-medium text-[#1ea64a]">Easy</span>
-                        <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs font-medium text-black/70">Arrays</span>
-                        <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs font-medium text-black/70">Hash Table</span>
+                        <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-600">
+                          Medium
+                        </span>
+                        <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500">
+                          Strings
+                        </span>
+                        <span className="rounded-full bg-green-500/10 px-3 py-1 text-xs font-medium text-green-500">
+                          Dynamic Programming
+                        </span>
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
+
+                {/* Challenge Hints */}
+                <div className="rounded-[16px] border border-border bg-background p-6">
+                  <SectionHeader title="Hints" subtitle="Need help? Check these hints one by one." />
+                  <div className="space-y-3">
+                    {[
+                      { hint: 'Consider using dynamic programming with a 2D table.', revealed: true },
+                      { hint: 'Each character is a palindrome of length 1.', revealed: false },
+                      { hint: 'For substrings of length > 2, check if the first and last characters match and the inner substring is a palindrome.', revealed: false },
+                      { hint: 'Track the start index and maximum length found so far.', revealed: false },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-start gap-3 rounded-xl bg-secondary/60 p-4">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-background/50 text-xs font-medium text-foreground/60">
+                          {i + 1}
+                        </div>
+                        <p className={cn(
+                          'text-sm leading-relaxed',
+                          item.revealed ? 'text-foreground/80' : 'text-foreground/30'
+                        )}>
+                          {item.revealed ? item.hint : 'Click to reveal hint...'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Challenge Tags/Stats */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-[16px] border border-border bg-background p-5">
+                    <div className="text-2xl font-bold text-foreground/80">78%</div>
+                    <div className="mt-1 text-xs text-foreground/40">Acceptance Rate</div>
+                  </div>
+                  <div className="rounded-[16px] border border-border bg-background p-5">
+                    <div className="text-2xl font-bold text-foreground/80">2.4k</div>
+                    <div className="mt-1 text-xs text-foreground/40">Submissions Today</div>
+                  </div>
+                  <div className="rounded-[16px] border border-border bg-background p-5">
+                    <div className="text-2xl font-bold text-foreground/80">35 min</div>
+                    <div className="mt-1 text-xs text-foreground/40">Avg. Solve Time</div>
+                  </div>
+                </div>
               </motion.div>
             )}
 
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (
-              <div className="space-y-6">
-                {/* Progress Analytics */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="grid gap-6 lg:grid-cols-2"
-                >
-                  <div className="rounded-[16px] border border-[#e6e6e6] bg-white p-6">
-                    <SectionHeader title="Progress Analytics" subtitle="Your performance across key metrics" />
-                    <div className="mt-4 space-y-5">
-                      {progressMetrics.map((metric, i) => (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                {/* Progress Metrics Row */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {progressMetrics.map((metric) => (
+                    <div key={metric.label} className="rounded-[16px] border border-border bg-background p-6">
+                      <p className="text-sm font-medium text-foreground/60">{metric.label}</p>
+                      <p className="mt-2 text-4xl font-bold text-foreground/90">
+                        <AnimatedCounter value={metric.value} suffix="%" />
+                      </p>
+                      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
                         <motion.div
-                          key={metric.label}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 + i * 0.08 }}
-                        >
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className="text-sm text-black/70">{metric.label}</span>
-                            <span className="text-sm font-semibold text-black/80">
-                              <AnimatedCounter value={metric.value} suffix="%" />
-                            </span>
-                          </div>
-                          <div className="h-3 overflow-hidden rounded-full bg-[#f1f1f1]">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${metric.value}%` }}
-                              transition={{ duration: 1, delay: 0.2 + i * 0.1, ease: 'easeOut' }}
-                              className="h-full rounded-full bg-black/30"
-                            />
-                          </div>
-                        </motion.div>
-                      ))}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${metric.value}%` }}
+                          transition={{ duration: 1.2, ease: 'easeOut' }}
+                          className="h-full rounded-full bg-foreground/40"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  ))}
+                </div>
 
-                  {/* AI Insights */}
-                  <div className="rounded-[16px] border border-[#e6e6e6] bg-white p-6">
-                    <SectionHeader title="AI Insights" subtitle="Smart recommendations from AI analysis" />
-                    <div className="space-y-3">
-                      {aiInsightsData.map((insight, i) => (
-                        <motion.div
-                          key={insight.label}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.15 + i * 0.08 }}
-                          className="group flex items-start gap-4 rounded-xl bg-[#f7f7f5] p-4 transition-all duration-200 hover:bg-[#e6e6e6]"
-                        >
-                          <div className="rounded-xl bg-white p-2.5 border border-[#e6e6e6]">
-                            <insight.icon className="h-4 w-4 text-black/60" />
+                {/* Insights Grid */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {aiInsightsData.map((insight) => (
+                    <div key={insight.label} className="rounded-[16px] border border-border bg-background p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl bg-secondary p-3 border border-border">
+                            <insight.icon className="h-5 w-5 text-foreground/60" />
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-black/70">{insight.label}</span>
-                              <span className="text-sm font-bold text-black/90">{insight.value}</span>
-                            </div>
-                            <p className="mt-0.5 text-xs text-black/40">{insight.detail}</p>
+                          <div>
+                            <p className="text-sm font-medium text-foreground/60">{insight.label}</p>
+                            <p className="text-2xl font-bold text-foreground/90">{insight.value}</p>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Performance Trend Graph */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
-                >
-                  <SectionHeader title="Performance Trends" subtitle="Your interview scores over time" />
-                  <div className="mt-6 flex items-end justify-between gap-2 h-48">
-                    {[
-                      { label: 'Week 1', value: 55 },
-                      { label: 'Week 2', value: 62 },
-                      { label: 'Week 3', value: 58 },
-                      { label: 'Week 4', value: 72 },
-                      { label: 'Week 5', value: 68 },
-                      { label: 'Week 6', value: 78 },
-                      { label: 'Week 7', value: 85 },
-                      { label: 'Week 8', value: 82 },
-                    ].map((item, i) => (
-                      <motion.div
-                        key={item.label}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 + i * 0.05 }}
-                        className="group relative flex flex-1 flex-col items-center gap-2"
-                      >
-                        <div className="relative w-full flex-1 flex items-end">
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: `${item.value}%` }}
-                            transition={{ duration: 0.8, delay: 0.4 + i * 0.06, ease: 'easeOut' }}
-                            className="w-full rounded-lg bg-black/10 transition-all duration-300 group-hover:bg-black/20 cursor-pointer"
-                            style={{ minHeight: '8px' }}
-                          >
-                            <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#f7f7f5] px-2 py-0.5 text-xs text-black/70 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                              {item.value}%
-                            </div>
-                          </motion.div>
                         </div>
-                        <span className="text-xs font-medium text-black/40">{item.label}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
+                      </div>
+                      <p className="mt-3 text-sm text-foreground/40">{insight.detail}</p>
+                    </div>
+                  ))}
+                </div>
 
                 {/* Improvement Suggestions */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="rounded-[16px] border border-[#e6e6e6] bg-white p-6"
-                >
-                  <SectionHeader title="Improvement Suggestions" subtitle="AI-powered recommendations to boost your performance" />
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-[16px] border border-border bg-background p-6">
+                  <SectionHeader title="AI Suggestions" subtitle="Personalized tips to improve your interview performance" />
+                  <div className="space-y-3">
                     {improvementSuggestions.map((suggestion, i) => (
-                      <motion.div
-                        key={suggestion}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + i * 0.08 }}
-                        className="group flex items-start gap-3 rounded-xl bg-[#f7f7f5] p-4 transition-all duration-200 hover:bg-[#e6e6e6]"
-                      >
-                        <div className="rounded-lg bg-white p-2 border border-[#e6e6e6]">
-                          <Lightbulb className="h-4 w-4 text-black/60" />
+                      <div key={i} className="flex items-center gap-3 rounded-xl bg-secondary/60 p-4">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/50">
+                          <CheckCircle className="h-4 w-4 text-foreground/40" />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-black/70">{suggestion}</p>
-                        </div>
-                        <Check className="h-4 w-4 shrink-0 text-[#1ea64a]/50" />
-                      </motion.div>
+                        <p className="text-sm text-foreground/70">{suggestion}</p>
+                      </div>
                     ))}
                   </div>
-                </motion.div>
-              </div>
-            )}
+                </div>
 
-            <div className="h-8" />
+                {/* Recent Sessions */}
+                <div className="rounded-[16px] border border-border bg-background p-6">
+                  <SectionHeader
+                    title="Recent Sessions"
+                    subtitle="Your interview history"
+                    action={{ label: 'View All', href: '/history' }}
+                  />
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="pb-3 pr-4 font-medium text-foreground/40">Date</th>
+                          <th className="pb-3 pr-4 font-medium text-foreground/40">Topic</th>
+                          <th className="pb-3 pr-4 font-medium text-foreground/40">Score</th>
+                          <th className="pb-3 pr-4 font-medium text-foreground/40">Duration</th>
+                          <th className="pb-3 font-medium text-foreground/40">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { date: '2026-06-10', topic: 'React', score: 82, duration: '15:32', status: 'completed' },
+                          { date: '2026-06-08', topic: 'System Design', score: 75, duration: '18:00', status: 'completed' },
+                          { date: '2026-06-05', topic: 'DSA', score: 88, duration: '20:15', status: 'completed' },
+                          { date: '2026-06-01', topic: 'Backend', score: 70, duration: '12:45', status: 'completed' },
+                        ].map((row, i) => (
+                          <tr key={i} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                            <td className="py-3 pr-4 text-foreground/60">{row.date}</td>
+                            <td className="py-3 pr-4 text-foreground/70">{row.topic}</td>
+                            <td className="py-3 pr-4">
+                              <span className="font-medium text-foreground/80">{row.score}%</span>
+                            </td>
+                            <td className="py-3 pr-4 text-foreground/60">{row.duration}</td>
+                            <td className="py-3">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-semantic-success/10 px-2.5 py-0.5 text-xs font-medium text-semantic-success">
+                                <CheckCircle className="h-3 w-3" />
+                                Completed
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </div>
         </main>
-
-        <Footer />
-      </div>
-
-      {/* Interview Summary Modal */}
-      <AnimatePresence>
-        {showSummary && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-2xl overflow-hidden rounded-[24px] border border-[#e6e6e6] bg-white"
-            >
-              <div className="p-8">
-                {/* Header */}
-                <div className="mb-8 text-center">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: 'spring', damping: 15 }}
-                    className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-black"
-                  >
-                    <Award className="h-10 w-10 text-white" />
-                  </motion.div>
-                  <h2 className="text-3xl font-bold text-black">Interview Complete!</h2>
-                  <p className="mt-2 text-black/50">Great effort! Here is your performance summary.</p>
-                </div>
-
-                {/* Score */}
-                <div className="mb-8 flex justify-center">
-                  <div className="flex flex-col items-center">
-                    <div className="relative flex h-32 w-32 items-center justify-center">
-                      <svg className="absolute inset-0 h-full w-full -rotate-90">
-                        <circle cx="64" cy="64" r="56" stroke="#f1f1f1" strokeWidth="6" fill="none" />
-                        <motion.circle
-                          cx="64" cy="64" r="56"
-                          stroke="black"
-                          strokeWidth="6"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeDasharray={2 * Math.PI * 56}
-                          initial={{ strokeDashoffset: 2 * Math.PI * 56 }}
-                          animate={{ strokeDashoffset: 2 * Math.PI * 56 * (1 - 84 / 100) }}
-                          transition={{ duration: 1.5, ease: 'easeOut', delay: 0.4 }}
-                        />
-                      </svg>
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }}
-                        className="text-4xl font-bold text-black"
-                      >
-                        84%
-                      </motion.span>
-                    </div>
-                    <span className="mt-2 text-sm text-black/40">Final Score</span>
-                  </div>
-                </div>
-
-                {/* Strengths & Weaknesses */}
-                <div className="mb-8 grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl bg-[#1ea64a]/5 border border-[#1ea64a]/10 p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <ThumbsUp className="h-4 w-4 text-[#1ea64a]" />
-                      <span className="text-sm font-medium text-[#1ea64a]">Strengths</span>
-                    </div>
-                    <ul className="space-y-2">
-                      {['Strong technical knowledge', 'Clear problem-solving approach', 'Good confidence level'].map((item, i) => (
-                        <motion.li
-                          key={item}
-                          initial={{ opacity: 0, x: -5 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 1 + i * 0.1 }}
-                          className="flex items-start gap-2 text-sm text-black/60"
-                        >
-                          <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#1ea64a]" />
-                          {item}
-                        </motion.li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="rounded-xl bg-black/5 border border-black/10 p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <ThumbsDown className="h-4 w-4 text-black/60" />
-                      <span className="text-sm font-medium text-black/60">Weaknesses</span>
-                    </div>
-                    <ul className="space-y-2">
-                      {['Need more structured responses', 'Work on time management', 'Use more specific examples'].map((item, i) => (
-                        <motion.li
-                          key={item}
-                          initial={{ opacity: 0, x: -5 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 1.2 + i * 0.1 }}
-                          className="flex items-start gap-2 text-sm text-black/60"
-                        >
-                          <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />
-                          {item}
-                        </motion.li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Suggestions */}
-                <div className="mb-8 rounded-xl bg-[#f7f7f5] p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-black/60" />
-                    <span className="text-sm font-medium text-black/70">Improvement Suggestions</span>
-                  </div>
-                  <ul className="space-y-2">
-                    {improvementSuggestions.map((item, i) => (
-                      <motion.li
-                        key={item}
-                        initial={{ opacity: 0, x: -5 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 1.4 + i * 0.08 }}
-                        className="flex items-start gap-2 text-sm text-black/60"
-                      >
-                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />
-                        {item}
-                      </motion.li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                  <FigmaButton icon={RefreshCcw} onClick={() => {
-                    setShowSummary(false)
-                    setInterviewState('idle')
-                    setCurrentQuestionIndex(0)
-                    setTimerSeconds(0)
-                    setTranscript('')
-                    setFullTranscript([])
-                    setCodeOutput('')
-                  }}>
-                    Retry Interview
-                  </FigmaButton>
-                  <FigmaButton variant="secondary" icon={MessageSquare} onClick={() => setShowSummary(false)}>
-                    View Detailed Feedback
-                  </FigmaButton>
-                  <FigmaButton variant="ghost" onClick={() => setShowSummary(false)}>
-                    Close
-                  </FigmaButton>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-function DesktopSidebarContent({ collapsed }) {
-  const sidebarLinks = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/interview', label: 'Interview', icon: Bot },
-    { href: '/history', label: 'History', icon: History },
-    { href: '/feedback', label: 'Feedback', icon: MessageSquare },
-    { href: '/login', label: 'Logout', icon: LogOut },
-  ]
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className={cn('flex h-16 items-center border-b border-[#e6e6e6]', collapsed ? 'justify-center px-3' : 'px-5')}>
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black">
-            <Brain className="h-5 w-5 text-white" />
-          </div>
-          {!collapsed && (
-            <span className="text-lg font-bold text-black">MockAI</span>
-          )}
-        </Link>
-      </div>
-
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {sidebarLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cn(
-              'group flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-medium transition-all duration-200',
-              link.href === '/interview'
-                ? 'bg-[#f7f7f5] text-black'
-                : 'text-black/50 hover:bg-[#f7f7f5] hover:text-black',
-              collapsed && 'justify-center px-2'
-            )}
-            title={collapsed ? link.label : undefined}
-          >
-            <link.icon className="h-4.5 w-4.5 shrink-0" />
-            {!collapsed && <span>{link.label}</span>}
-          </Link>
-        ))}
-      </nav>
-
-      <div className={cn('border-t border-[#e6e6e6] p-3', collapsed && 'flex justify-center')}>
-        {!collapsed ? (
-          <div className="flex items-center gap-3 rounded-[12px] bg-[#f7f7f5] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
-              A
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium text-black/80">Alex Johnson</p>
-              <p className="truncate text-xs text-black/40">alex@example.com</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
-            A
-          </div>
-        )}
       </div>
     </div>
   )
 }
 
 function MobileSidebarContent({ onClose }) {
-  const sidebarLinks = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/interview', label: 'Interview', icon: Bot },
-    { href: '/history', label: 'History', icon: History },
-    { href: '/feedback', label: 'Feedback', icon: MessageSquare },
-    { href: '/login', label: 'Logout', icon: LogOut },
-  ]
-
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center justify-between border-b border-[#e6e6e6] px-5">
-        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={onClose}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black">
-            <Brain className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-lg font-bold text-black">MockAI</span>
-        </Link>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-2 text-black/60 transition-colors hover:bg-[#f7f7f5] hover:text-black"
-        >
+      <div className="flex items-center justify-between border-b border-border p-4">
+        <span className="font-semibold text-foreground/80">Menu</span>
+        <button onClick={onClose} className="text-foreground/40 hover:text-foreground/60">
           <X className="h-5 w-5" />
         </button>
       </div>
-
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {sidebarLinks.map((link) => (
+      <nav className="flex-1 space-y-1 p-4">
+        {[
+          { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+          { href: '/interview', icon: Bot, label: 'Interview' },
+          { href: '/history', icon: History, label: 'History' },
+          { href: '/feedback', icon: MessageSquare, label: 'Feedback' },
+        ].map((item) => (
           <Link
-            key={link.href}
-            href={link.href}
+            key={item.href}
+            href={item.href}
             onClick={onClose}
-            className={cn(
-              'flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-medium transition-all duration-200',
-              link.href === '/interview'
-                ? 'bg-[#f7f7f5] text-black'
-                : 'text-black/50 hover:bg-[#f7f7f5] hover:text-black'
-            )}
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground/60 transition-all hover:bg-secondary"
           >
-            <link.icon className="h-4.5 w-4.5 shrink-0" />
-            <span>{link.label}</span>
+            <item.icon className="h-5 w-5" />
+            {item.label}
           </Link>
         ))}
       </nav>
+      <div className="border-t border-border p-4">
+        <Link
+          href="/login"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground/60 transition-all hover:bg-secondary"
+        >
+          <LogOut className="h-5 w-5" />
+          Logout
+        </Link>
+      </div>
+    </div>
+  )
+}
 
-      <div className="border-t border-[#e6e6e6] p-3">
-        <div className="flex items-center gap-3 rounded-[12px] bg-[#f7f7f5] px-3 py-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
-            A
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-medium text-black/80">Alex Johnson</p>
-            <p className="truncate text-xs text-black/40">alex@example.com</p>
-          </div>
-        </div>
+function DesktopSidebarContent({ collapsed }) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className={cn(
+        'flex items-center border-b border-border p-4',
+        collapsed ? 'justify-center' : 'justify-between'
+      )}>
+        {!collapsed && <span className="font-semibold text-foreground/80">PrepGenius</span>}
+      </div>
+      <nav className="flex-1 space-y-1 p-4">
+        {[
+          { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+          { href: '/interview', icon: Bot, label: 'Interview' },
+          { href: '/history', icon: History, label: 'History' },
+          { href: '/feedback', icon: MessageSquare, label: 'Feedback' },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground/60 transition-all hover:bg-secondary',
+              collapsed && 'justify-center'
+            )}
+            title={collapsed ? item.label : undefined}
+          >
+            <item.icon className="h-5 w-5" />
+            {!collapsed && item.label}
+          </Link>
+        ))}
+      </nav>
+      <div className="border-t border-border p-4">
+        <Link
+          href="/login"
+          className={cn(
+            'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground/60 transition-all hover:bg-secondary',
+            collapsed && 'justify-center'
+          )}
+        >
+          <LogOut className="h-5 w-5" />
+          {!collapsed && 'Logout'}
+        </Link>
       </div>
     </div>
   )

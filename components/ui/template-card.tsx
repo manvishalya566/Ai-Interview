@@ -18,7 +18,7 @@ function TemplateCard({
     <div
       data-slot="template-card"
       className={cn(
-        "bg-[#f7f7f5] rounded-[8px] p-[16px] text-black",
+        "bg-secondary rounded-[8px] p-[16px] text-foreground",
         className
       )}
       {...props}

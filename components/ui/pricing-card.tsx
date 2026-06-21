@@ -26,7 +26,7 @@ function PricingCard({
         data-slot="pricing-card"
         data-variant={variant}
         className={cn(
-          "bg-white rounded-[24px] border border-[#e6e6e6] p-[24px]",
+          "bg-background rounded-[24px] border border-border p-[24px]",
           variant === "featured" &&
             "border-t-2 border-t-black shadow-[0_4px_16px_rgba(0,0,0,0.06)]",
           className
