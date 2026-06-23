@@ -43,7 +43,30 @@ export const QuestionCard = memo(function QuestionCard({
       </div>
 
       <div className="mt-4">
-        {currentQuestion ? (
+        {interviewState === 'completed' && isGenerating ? (
+          <div className="flex flex-col items-center gap-4 py-10">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+            >
+              <Brain className="h-10 w-10 text-foreground/30" />
+            </motion.div>
+            <div className="text-center">
+              <p className="text-lg font-medium text-foreground/60">AI is judging your answers...</p>
+              <p className="mt-1 text-sm text-foreground/30">Please wait while we analyze your responses</p>
+            </div>
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                  className="h-2 w-2 rounded-full bg-foreground/30"
+                />
+              ))}
+            </div>
+          </div>
+        ) : currentQuestion ? (
           <>
             <div className="mb-3 flex items-center gap-2">
               <span className={cn(

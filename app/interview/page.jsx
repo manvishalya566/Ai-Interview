@@ -402,19 +402,22 @@ export default function InterviewPage() {
   }, [selectedCategory, askedQuestions])
 
   const handleEndInterview = useCallback(async () => {
-    const store = useInterviewStore.getState()
+    let store = useInterviewStore.getState()
     if (store.isGenerating) return
 
     store.saveCurrentAnswer()
-    store.setIsGenerating(true)
-    store.setInterviewState('completed')
+    store = useInterviewStore.getState()
 
     const questions = store.questionsAsked
     const answers = store.userAnswers
     const duration = Math.floor(store.timerSeconds / 60)
     const techstack = store.selectedCategory
 
+    store.setIsGenerating(true)
+    store.setInterviewState('completed')
+
     let analysis = {}
+    let submitResult = null
 
     try {
       if (questions.length > 0) {
@@ -459,15 +462,19 @@ export default function InterviewPage() {
         }),
       })
 
-      const submitData = await submitRes.json()
-
-      if (submitData.success && submitData.interview?._id) {
-        router.push(`/feedback?id=${submitData.interview._id}`)
-      }
+      submitResult = await submitRes.json()
     } catch (err) {
       console.error("[handleEndInterview] submit error:", err)
     } finally {
+      store = useInterviewStore.getState()
       store.setIsGenerating(false)
+    }
+
+    const interviewId = submitResult?.interview?._id
+    if (interviewId) {
+      router.push(`/feedback?id=${interviewId}`)
+    } else {
+      router.push('/feedback')
     }
   }, [router])
 
