@@ -7,6 +7,7 @@ import { Menu, X, Brain, Search, Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SIDEBAR_LINKS, PUBLIC_NAV_LINKS } from "@/lib/nav-config"
 import { FigmaButton } from "@/components/ui/figma-button"
+import { useAuth } from "@/hooks/useAuth"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -14,6 +15,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname()
+  const { user } = useAuth() as any
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
@@ -35,9 +37,9 @@ export function AppShell({ children }: AppShellProps) {
         )}
       >
         {mobileSidebarOpen ? (
-          <MobileSidebarContent onClose={() => setMobileSidebarOpen(false)} />
+          <MobileSidebarContent user={user} onClose={() => setMobileSidebarOpen(false)} />
         ) : (
-          <DesktopSidebarContent collapsed={!sidebarOpen} />
+          <DesktopSidebarContent user={user} collapsed={!sidebarOpen} />
         )}
       </aside>
 
@@ -92,7 +94,7 @@ export function AppShell({ children }: AppShellProps) {
                 </span>
               </button>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                A
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
               </div>
             </div>
           </div>
@@ -109,7 +111,8 @@ export function AppShell({ children }: AppShellProps) {
   )
 }
 
-function DesktopSidebarContent({ collapsed }: { collapsed: boolean }) {
+function DesktopSidebarContent({ user, collapsed }: { user: any; collapsed: boolean }) {
+  const initial = user?.name?.charAt(0)?.toUpperCase() || "U"
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex h-16 items-center border-b border-border", collapsed ? "justify-center px-3" : "px-5")}>
@@ -146,16 +149,16 @@ function DesktopSidebarContent({ collapsed }: { collapsed: boolean }) {
         {!collapsed ? (
           <div className="flex items-center gap-3 rounded-md bg-secondary px-3 py-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-              A
+              {initial}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium text-foreground">Alex Johnson</p>
-              <p className="truncate text-xs text-foreground/40">alex@example.com</p>
+              <p className="truncate text-sm font-medium text-foreground">{user?.name || "User"}</p>
+              <p className="truncate text-xs text-foreground/40">{user?.email || ""}</p>
             </div>
           </div>
         ) : (
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-            A
+            {initial}
           </div>
         )}
       </div>
@@ -163,7 +166,8 @@ function DesktopSidebarContent({ collapsed }: { collapsed: boolean }) {
   )
 }
 
-function MobileSidebarContent({ onClose }: { onClose: () => void }) {
+function MobileSidebarContent({ user, onClose }: { user: any; onClose: () => void }) {
+  const initial = user?.name?.charAt(0)?.toUpperCase() || "U"
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center justify-between border-b border-border px-5">
@@ -201,11 +205,11 @@ function MobileSidebarContent({ onClose }: { onClose: () => void }) {
       <div className="border-t border-border p-3">
         <div className="flex items-center gap-3 rounded-md bg-secondary px-3 py-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-            A
+            {initial}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-medium text-foreground">Alex Johnson</p>
-            <p className="truncate text-xs text-foreground/40">alex@example.com</p>
+            <p className="truncate text-sm font-medium text-foreground">{user?.name || "User"}</p>
+            <p className="truncate text-xs text-foreground/40">{user?.email || ""}</p>
           </div>
         </div>
       </div>

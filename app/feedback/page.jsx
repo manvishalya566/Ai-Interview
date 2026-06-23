@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import {
@@ -15,104 +16,11 @@ import { cn } from '@/lib/utils'
 import { AppShell } from '@/components/app-shell'
 import { FigmaButton } from '@/components/ui/figma-button'
 
-const performanceMetrics = [
-  { label: 'Communication Skills', value: 78, icon: MessageCircle },
-  { label: 'Technical Knowledge', value: 92, icon: Code },
-  { label: 'Confidence Level', value: 85, icon: Star },
-  { label: 'Problem Solving', value: 88, icon: Brain },
-  { label: 'Speaking Speed', value: 72, icon: Mic },
-  { label: 'Eye Contact', value: 68, icon: Eye },
-]
-
-const strengths = [
-  'Excellent technical depth in React and System Design',
-  'Clear articulation of complex algorithms',
-  'Strong problem-solving approach with optimal solutions',
-  'Good use of examples and analogies',
-]
-
-const weaknesses = [
-  'Tendency to rush through behavioral questions',
-  'Occasional filler words ("um", "like") during thinking',
-  'Could improve on time management for coding rounds',
-  'Need more practice with system design trade-offs',
-]
-
-const aiSuggestions = [
-  'Practice the STAR method for behavioral questions',
-  'Record yourself to identify filler words',
-  'Use a timer during coding practice sessions',
-  'Review system design case studies from FAANG interviews',
-]
-
-const recommendedTopics = [
-  { name: 'Advanced React Patterns', priority: 'High' },
-  { name: 'System Design - Distributed Systems', priority: 'High' },
-  { name: 'Behavioral Interview Techniques', priority: 'Medium' },
-  { name: 'Dynamic Programming Optimization', priority: 'Medium' },
-]
-
-const questionReviews = [
-  {
-    id: 1,
-    question: 'Implement a debounce function in JavaScript and explain its real-world applications.',
-    userAnswer: 'Implemented a basic debounce with setTimeout, explained event handling in search inputs.',
-    aiFeedback: 'Good implementation but missed edge cases like immediate execution option and leading/trailing calls.',
-    score: 82,
-    correctApproach: 'Use closure with setTimeout, add clearTimeout on each call, support options for leading/trailing execution.',
-    improvement: 'Consider adding TypeScript types and testing with rapid-fire events.',
-  },
-  {
-    id: 2,
-    question: 'Explain the Virtual DOM in React and how it differs from real DOM manipulation.',
-    userAnswer: 'Explained diffing algorithm, reconciliation, and performance benefits with examples.',
-    aiFeedback: 'Excellent explanation! Clear comparison with real DOM, good use of analogies, and covered fiber architecture.',
-    score: 95,
-    correctApproach: 'Virtual DOM is a lightweight copy, React batches updates, uses diffing for minimal changes, fiber for priority scheduling.',
-    improvement: 'Consider mentioning concurrent features like Suspense and Transitions in React 18.',
-  },
-  {
-    id: 3,
-    question: 'Design a URL shortener service like TinyURL or Bitly.',
-    userAnswer: 'Discussed database schema, hashing algorithms, and basic scaling considerations.',
-    aiFeedback: 'Good start but missed important system design aspects: cache layer, load balancing, rate limiting, and analytics.',
-    score: 70,
-    correctApproach: 'API layer + application servers + cache (Redis) + database (SQL/NoSQL) + hash function (MD5/base62) + load balancer + rate limiter.',
-    improvement: 'Practice drawing system diagrams and thinking about failure modes, data partitioning, and global distribution.',
-  },
-  {
-    id: 4,
-    question: 'Tell me about a time you had to resolve a conflict with a team member.',
-    userAnswer: 'Shared a story about disagreement on technical approach, reached compromise through discussion.',
-    aiFeedback: 'Decent story but could use more STAR structure. Missing specific metrics on the outcome and what you learned.',
-    score: 65,
-    correctApproach: 'Use STAR: Situation (context), Task (your responsibility), Action (what YOU did), Result (quantifiable outcome), Learnings.',
-    improvement: 'Prepare 3-4 STAR stories that showcase different competencies: leadership, conflict resolution, problem solving, growth.',
-  },
-]
-
-const timelineEvents = [
-  { time: '10:30 AM', title: 'Interview Started', description: 'Connected with AI interviewer', status: 'complete', icon: PlayCircle },
-  { time: '10:32 AM', title: 'Introduction Phase', description: 'Warm-up questions and role discussion', status: 'complete', icon: Users },
-  { time: '10:45 AM', title: 'Technical Round', description: '2 coding questions completed', status: 'complete', icon: Code },
-  { time: '11:15 AM', title: 'System Design', description: 'URL shortener design discussion', status: 'complete', icon: PieChart },
-  { time: '11:35 AM', title: 'Behavioral Questions', description: '3 STAR-method questions', status: 'complete', icon: MessageSquare },
-  { time: '11:45 AM', title: 'Interview Completed', description: 'Score: 82% - Ready for Review', status: 'complete', icon: CheckCircle },
-]
-
-const skillBreakdown = [
-  { name: 'DSA', score: 91, readiness: 95, improvement: '+12', trend: 'up', icon: Code },
-  { name: 'React', score: 88, readiness: 90, improvement: '+8', trend: 'up', icon: Zap },
-  { name: 'System Design', score: 72, readiness: 65, improvement: '-3', trend: 'down', icon: PieChart },
-  { name: 'Backend', score: 78, readiness: 75, improvement: '+5', trend: 'up', icon: Activity },
-  { name: 'Communication', score: 74, readiness: 70, improvement: '+2', trend: 'up', icon: MessageCircle },
-  { name: 'HR Questions', score: 68, readiness: 60, improvement: '0', trend: 'neutral', icon: Users },
-]
-
-const weeklyPerformance = [
-  { day: 'Mon', score: 72 }, { day: 'Tue', score: 68 }, { day: 'Wed', score: 75 },
-  { day: 'Thu', score: 82 }, { day: 'Fri', score: 78 }, { day: 'Sat', score: 85 }, { day: 'Sun', score: 82 },
-]
+const IconsMap = {
+  MessageCircle, Code, Star, Brain, Mic, Eye,
+  CheckCircle, Target, Users, Clock, Zap,
+  PieChart, Activity, PlayCircle, BarChart3,
+}
 
 function SectionHeader({ title, subtitle, icon: Icon }) {
   return (
@@ -225,7 +133,84 @@ function QuestionCard({ question, index }) {
   )
 }
 
-export default function FeedbackPage() {
+function FeedbackPageContent() {
+  const searchParams = useSearchParams()
+  const interviewId = searchParams.get('id')
+  const [feedback, setFeedback] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchFeedback() {
+      try {
+        if (!interviewId) { setLoading(false); return }
+        const res = await fetch(`/api/feedback/${interviewId}`)
+        const data = await res.json()
+        if (data.success) {
+          setFeedback(data.interview)
+        }
+      } catch (err) {
+        console.error("Failed to load feedback:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFeedback()
+  }, [interviewId])
+
+  const interview = feedback
+
+  const performanceMetrics = interview?.performanceMetrics?.filter(m => m.value != null) || []
+  const strengths = interview?.strengths || []
+  const weaknesses = interview?.weaknesses || []
+  const aiSuggestions = interview?.aiSuggestions || []
+  const recommendedTopics = interview?.recommendedTopics || []
+  const questionReviews = interview?.questionFeedback?.length > 0
+    ? interview.questionFeedback.map((qf, idx) => ({ ...qf, id: idx + 1 }))
+    : []
+  const timelineEvents = interview?.timelineEvents?.length > 0
+    ? interview.timelineEvents.map(te => ({ ...te, icon: IconsMap[te.icon] || PlayCircle }))
+    : []
+  const skillBreakdown = interview?.skillBreakdown?.length > 0
+    ? interview.skillBreakdown.map(sb => ({ ...sb, icon: IconsMap[sb.icon] || Code }))
+    : []
+  const weeklyPerformance = interview?.weeklyPerformance || []
+
+  const overallScore = interview?.overallScore
+  const company = interview?.company
+  const role = interview?.role
+  const dateStr = interview?.date ? new Date(interview.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null
+  const duration = interview?.duration ? `${interview.duration} min` : null
+  const questionsTotal = interview?.questions?.length || 0
+
+  const quickStats = interview?.quickStats || []
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center py-20">
+          <div className="flex items-center gap-2 text-foreground/50">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+            <span className="text-sm">Loading feedback...</span>
+          </div>
+        </div>
+      </AppShell>
+    )
+  }
+
+  if (!interview) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <AlertCircle className="h-12 w-12 text-foreground/30" />
+          <p className="text-foreground/50">No interview data found.</p>
+          <Link href="/interview" className="rounded-pill bg-primary px-6 py-2.5 text-body-sm font-medium text-primary-foreground">
+            Start New Interview
+          </Link>
+        </div>
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell>
       <motion.div
@@ -241,366 +226,368 @@ export default function FeedbackPage() {
             <div>
               <h1 className="text-headline text-foreground">Interview Feedback</h1>
               <p className="mt-2 text-body text-foreground/50">
-                Google — Senior Software Engineer • May 20, 2026 • <span className="text-foreground/70">45 min</span>
+                {[company, role].filter(Boolean).join(' — ')}
+                {dateStr && ` • ${dateStr}`}
+                {duration && <span className="text-foreground/70"> • {duration}</span>}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-8">
-            <div className="text-center">
-              <div className="text-6xl font-bold text-foreground">82<span className="text-2xl text-foreground/40">%</span></div>
-              <p className="text-body-sm font-medium text-foreground mt-1">Overall Score</p>
-              <p className="text-body-sm text-foreground/40">Excellent Performance</p>
+          {overallScore != null && (
+            <div className="flex items-center gap-8">
+              <div className="text-center">
+                <div className="text-6xl font-bold text-foreground">{overallScore}<span className="text-2xl text-foreground/40">%</span></div>
+                <p className="text-body-sm font-medium text-foreground mt-1">Overall Score</p>
+                <p className="text-body-sm text-foreground/40">{overallScore >= 80 ? 'Excellent Performance' : overallScore >= 60 ? 'Good Performance' : 'Needs Improvement'}</p>
+              </div>
+              <div className="hidden space-y-3 lg:block">
+                <div className="flex items-center gap-3">
+                  <div className="h-3 w-3 rounded-full bg-primary" />
+                  <span className="text-body-sm text-foreground/60">AI Performance Rating</span>
+                  <span className="text-card-title text-foreground">{overallScore >= 90 ? 'A' : overallScore >= 80 ? 'A-' : overallScore >= 70 ? 'B+' : 'B'}</span>
+                </div>
+                {questionsTotal > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="h-3 w-3 rounded-full bg-foreground/60" />
+                    <span className="text-body-sm text-foreground/60">Questions Attempted</span>
+                    <span className="text-card-title text-foreground">{questionsTotal}/{questionsTotal}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <div className="h-3 w-3 rounded-full bg-foreground/40" />
+                  <span className="text-body-sm text-foreground/60">Readiness Score</span>
+                  <span className="text-card-title text-foreground">{overallScore}%</span>
+                </div>
+              </div>
             </div>
-            <div className="hidden space-y-3 lg:block">
-              <div className="flex items-center gap-3">
-                <div className="h-3 w-3 rounded-full bg-primary" />
-                <span className="text-body-sm text-foreground/60">AI Performance Rating</span>
-                <span className="text-card-title text-foreground">A-</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-3 w-3 rounded-full bg-foreground/60" />
-                <span className="text-body-sm text-foreground/60">Questions Attempted</span>
-                <span className="text-card-title text-foreground">4/4</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-3 w-3 rounded-full bg-foreground/40" />
-                <span className="text-body-sm text-foreground/60">Readiness Score</span>
-                <span className="text-card-title text-foreground">78%</span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </motion.div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
-          className="rounded-lg border border-border bg-background p-6"
-        >
-          <SectionHeader title="Performance Analytics" subtitle="Key metrics breakdown" icon={BarChart3} />
-          <div className="space-y-5">
-            {performanceMetrics.map((metric, i) => (
-              <ProgressBar key={metric.label} label={metric.label} value={metric.value} delay={i} />
-            ))}
-          </div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-          className="rounded-lg border border-border bg-background p-6"
-        >
-          <SectionHeader title="Quick Stats" subtitle="Performance at a glance" icon={Zap} />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {[
-              { label: 'Best Category', value: 'Technical', icon: Code },
-              { label: 'Needs Work', value: 'Behavioral', icon: Users },
-              { label: 'Time Taken', value: '42 min', icon: Clock },
-              { label: 'Accuracy', value: '87%', icon: Target },
-              { label: 'Avg Response', value: '2.3 min', icon: Mic },
-              { label: 'Code Quality', value: 'A-', icon: CheckCircle },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.25 + i * 0.05 }}
-                className="rounded-md border border-border bg-background p-4 text-center transition-colors hover:bg-secondary"
-              >
-                <stat.icon className="mx-auto h-5 w-5 mb-2 text-foreground" />
-                <p className="text-card-title text-foreground">{stat.value}</p>
-                <p className="text-body-sm text-foreground/40 mt-0.5">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
-          className="rounded-lg border border-border bg-background p-6" style={{ borderLeft: '4px solid #c8e6cd' }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-md bg-block-mint p-2">
-              <CheckCircle className="h-5 w-5 text-foreground" />
-            </div>
-            <h3 className="text-card-title text-foreground">Strengths</h3>
-          </div>
-          <ul className="space-y-3">
-            {strengths.map((item, i) => (
-              <motion.li
-                key={i}
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.35 + i * 0.1 }}
-                className="flex items-start gap-3"
-              >
-                <div className="mt-0.5 shrink-0 rounded-full bg-block-mint p-0.5">
-                  <CheckCircle className="h-3.5 w-3.5 text-foreground" />
-                </div>
-                <span className="text-body-sm text-foreground/60 leading-relaxed">{item}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35 }}
-          className="rounded-lg border border-border bg-background p-6" style={{ borderLeft: '4px solid #efd4d4' }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-md bg-block-pink p-2">
-              <AlertCircle className="h-5 w-5 text-foreground" />
-            </div>
-            <h3 className="text-card-title text-foreground">Areas to Improve</h3>
-          </div>
-          <ul className="space-y-3">
-            {weaknesses.map((item, i) => (
-              <motion.li
-                key={i}
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + i * 0.1 }}
-                className="flex items-start gap-3"
-              >
-                <div className="mt-0.5 shrink-0 rounded-full bg-block-pink p-0.5">
-                  <XCircle className="h-3.5 w-3.5 text-foreground" />
-                </div>
-                <span className="text-body-sm text-foreground/60 leading-relaxed">{item}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}
-          className="rounded-lg border border-border bg-background p-6" style={{ borderLeft: '4px solid #c5b0f4' }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-md bg-block-lilac p-2">
-              <Lightbulb className="h-5 w-5 text-foreground" />
-            </div>
-            <h3 className="text-card-title text-foreground">AI Suggestions</h3>
-          </div>
-          <ul className="space-y-3">
-            {aiSuggestions.map((item, i) => (
-              <motion.li
-                key={i}
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.45 + i * 0.1 }}
-                className="flex items-start gap-3"
-              >
-                <div className="mt-0.5 shrink-0 rounded-full bg-block-lilac p-0.5">
-                  <Sparkles className="h-3.5 w-3.5 text-foreground" />
-                </div>
-                <span className="text-body-sm text-foreground/60 leading-relaxed">{item}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </motion.div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.45 }}
-        className="rounded-lg border border-border bg-background p-6"
-      >
-        <SectionHeader title="Question-by-Question Review" subtitle="Detailed AI feedback for each question" icon={MessageSquare} />
-        <div className="space-y-4">
-          {questionReviews.map((q) => (
-            <QuestionCard key={q.id} question={q} index={questionReviews.indexOf(q)} />
-          ))}
+      {(performanceMetrics.length > 0 || quickStats.length > 0) && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {performanceMetrics.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
+              className="rounded-lg border border-border bg-background p-6"
+            >
+              <SectionHeader title="Performance Analytics" subtitle="Key metrics breakdown" icon={BarChart3} />
+              <div className="space-y-5">
+                {performanceMetrics.map((metric, i) => (
+                  <ProgressBar key={metric.label} label={metric.label} value={metric.value} delay={i} />
+                ))}
+              </div>
+            </motion.div>
+          )}
+          {quickStats.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
+              className="rounded-lg border border-border bg-background p-6"
+            >
+              <SectionHeader title="Quick Stats" subtitle="Performance at a glance" icon={Zap} />
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {quickStats.map((stat, i) => {
+                  const IconComp = IconsMap[stat.icon] || Code
+                  return (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.25 + i * 0.05 }}
+                      className="rounded-md border border-border bg-background p-4 text-center transition-colors hover:bg-secondary"
+                    >
+                      <IconComp className="mx-auto h-5 w-5 mb-2 text-foreground" />
+                      <p className="text-card-title text-foreground">{stat.value}</p>
+                      <p className="text-body-sm text-foreground/40 mt-0.5">{stat.label}</p>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
         </div>
-      </motion.div>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}
-          className="rounded-lg border border-border bg-background p-6"
-        >
-          <SectionHeader title="Interview Timeline" subtitle="Minute-by-minute breakdown" icon={Clock} />
-          <div className="relative">
-            <div className="absolute left-[19px] top-2 bottom-2 w-px bg-border" />
-            <div className="space-y-0">
-              {timelineEvents.map((event, i) => (
-                <motion.div
-                  key={event.title}
-                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.55 + i * 0.08 }}
-                  className="group relative flex items-start gap-4 pb-6 last:pb-0"
-                >
-                  <div className="relative z-10 mt-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-secondary transition-colors group-hover:bg-border">
-                      <event.icon className="h-4 w-4 text-foreground" />
-                    </div>
-                  </div>
-                  <div className="flex flex-1 items-start justify-between gap-4 rounded-md bg-background px-4 py-2 transition-colors group-hover:bg-secondary">
-                    <div>
-                      <p className="text-body-sm font-medium text-foreground">{event.title}</p>
-                      <p className="mt-0.5 text-body-sm text-foreground/40">{event.description}</p>
-                    </div>
-                    <span className="shrink-0 text-body-sm text-foreground/30">{event.time}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55 }}
-          className="rounded-lg border border-border bg-background p-6"
-        >
-          <SectionHeader title="Skill Breakdown" subtitle="Readiness by category" icon={Target} />
-          <div className="grid grid-cols-2 gap-4">
-            {skillBreakdown.map((skill, i) => (
-              <motion.div
-                key={skill.name}
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.6 + i * 0.05 }}
-                className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-secondary"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <skill.icon className="h-4 w-4 text-foreground" />
-                    <span className="text-body-sm font-medium text-foreground">{skill.name}</span>
-                  </div>
-                  <span className={cn(
-                    'text-body-sm font-semibold',
-                    skill.trend === 'up' ? 'text-foreground' :
-                    skill.trend === 'down' ? 'text-foreground/60' : 'text-foreground/40'
-                  )}>
-                    {skill.trend === 'up' ? '\u2191' : skill.trend === 'down' ? '\u2193' : '\u2192'} {skill.improvement}
-                  </span>
+      {(strengths.length > 0 || weaknesses.length > 0 || aiSuggestions.length > 0) && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {strengths.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
+              className="rounded-lg border border-border bg-background p-6" style={{ borderLeft: '4px solid #c8e6cd' }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-md bg-block-mint p-2">
+                  <CheckCircle className="h-5 w-5 text-foreground" />
                 </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-card-title text-foreground">{skill.score}%</span>
-                  <span className="text-body-sm text-foreground/40">{skill.readiness}% ready</span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn('h-full rounded-full transition-all duration-500', skill.score >= 85 ? 'bg-primary' : skill.score >= 70 ? 'bg-foreground/70' : 'bg-foreground/50')}
-                    style={{ width: `${skill.readiness}%` }}
-                  />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}
-          className="rounded-lg border border-border bg-background p-6"
-        >
-          <SectionHeader title="Weekly Performance" subtitle="Your trend over the last 7 days" icon={LineChart} />
-          <div className="mt-6 flex items-end justify-between gap-2" style={{ height: '180px' }}>
-            {weeklyPerformance.map((day, i) => (
-              <motion.div
-                key={day.day}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.65 + i * 0.05 }}
-                className="group relative flex flex-1 flex-col items-center gap-2"
-              >
-                <div className="relative w-full" style={{ height: '140px' }}>
-                  <div className="absolute bottom-0 left-0 right-0 h-full rounded-md bg-secondary" />
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${day.score}%` }}
-                    transition={{ duration: 0.8, delay: 0.7 + i * 0.05, ease: 'easeOut' }}
-                    className="absolute bottom-0 left-0 right-0 rounded-md bg-primary transition-all duration-300"
-                    style={{ minHeight: '12px' }}
+                <h3 className="text-card-title text-foreground">Strengths</h3>
+              </div>
+              <ul className="space-y-3">
+                {strengths.map((item, i) => (
+                  <motion.li
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.35 + i * 0.1 }}
+                    className="flex items-start gap-3"
                   >
-                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-primary px-2 py-0.5 text-body-sm text-primary-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                      {day.score}%
+                    <div className="mt-0.5 shrink-0 rounded-full bg-block-mint p-0.5">
+                      <CheckCircle className="h-3.5 w-3.5 text-foreground" />
+                    </div>
+                    <span className="text-body-sm text-foreground/60 leading-relaxed">{item}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+
+          {weaknesses.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35 }}
+              className="rounded-lg border border-border bg-background p-6" style={{ borderLeft: '4px solid #efd4d4' }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-md bg-block-pink p-2">
+                  <AlertCircle className="h-5 w-5 text-foreground" />
+                </div>
+                <h3 className="text-card-title text-foreground">Areas to Improve</h3>
+              </div>
+              <ul className="space-y-3">
+                {weaknesses.map((item, i) => (
+                  <motion.li
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className="mt-0.5 shrink-0 rounded-full bg-block-pink p-0.5">
+                      <XCircle className="h-3.5 w-3.5 text-foreground" />
+                    </div>
+                    <span className="text-body-sm text-foreground/60 leading-relaxed">{item}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+
+          {aiSuggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}
+              className="rounded-lg border border-border bg-background p-6" style={{ borderLeft: '4px solid #c5b0f4' }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-md bg-block-lilac p-2">
+                  <Lightbulb className="h-5 w-5 text-foreground" />
+                </div>
+                <h3 className="text-card-title text-foreground">AI Suggestions</h3>
+              </div>
+              <ul className="space-y-3">
+                {aiSuggestions.map((item, i) => (
+                  <motion.li
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.45 + i * 0.1 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className="mt-0.5 shrink-0 rounded-full bg-block-lilac p-0.5">
+                      <Sparkles className="h-3.5 w-3.5 text-foreground" />
+                    </div>
+                    <span className="text-body-sm text-foreground/60 leading-relaxed">{item}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {questionReviews.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.45 }}
+          className="rounded-lg border border-border bg-background p-6"
+        >
+          <SectionHeader title="Question-by-Question Review" subtitle="Detailed AI feedback for each question" icon={MessageSquare} />
+          <div className="space-y-4">
+            {questionReviews.map((q) => (
+              <QuestionCard key={q.id} question={q} index={questionReviews.indexOf(q)} />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {(timelineEvents.length > 0 || skillBreakdown.length > 0) && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {timelineEvents.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}
+              className="rounded-lg border border-border bg-background p-6"
+            >
+              <SectionHeader title="Interview Timeline" subtitle="Minute-by-minute breakdown" icon={Clock} />
+              <div className="relative">
+                <div className="absolute left-[19px] top-2 bottom-2 w-px bg-border" />
+                <div className="space-y-0">
+                  {timelineEvents.map((event, i) => (
+                    <motion.div
+                      key={event.title}
+                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.55 + i * 0.08 }}
+                      className="group relative flex items-start gap-4 pb-6 last:pb-0"
+                    >
+                      <div className="relative z-10 mt-1">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-secondary transition-colors group-hover:bg-border">
+                          <event.icon className="h-4 w-4 text-foreground" />
+                        </div>
+                      </div>
+                      <div className="flex flex-1 items-start justify-between gap-4 rounded-md bg-background px-4 py-2 transition-colors group-hover:bg-secondary">
+                        <div>
+                          <p className="text-body-sm font-medium text-foreground">{event.title}</p>
+                          <p className="mt-0.5 text-body-sm text-foreground/40">{event.description}</p>
+                        </div>
+                        <span className="shrink-0 text-body-sm text-foreground/30">{event.time}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {skillBreakdown.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55 }}
+              className="rounded-lg border border-border bg-background p-6"
+            >
+              <SectionHeader title="Skill Breakdown" subtitle="Readiness by category" icon={Target} />
+              <div className="grid grid-cols-2 gap-4">
+                {skillBreakdown.map((skill, i) => (
+                  <motion.div
+                    key={skill.name}
+                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.6 + i * 0.05 }}
+                    className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-secondary"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <skill.icon className="h-4 w-4 text-foreground" />
+                        <span className="text-body-sm font-medium text-foreground">{skill.name}</span>
+                      </div>
+                      <span className={cn(
+                        'text-body-sm font-semibold',
+                        skill.trend === 'up' ? 'text-foreground' :
+                        skill.trend === 'down' ? 'text-foreground/60' : 'text-foreground/40'
+                      )}>
+                        {skill.trend === 'up' ? '\u2191' : skill.trend === 'down' ? '\u2193' : '\u2192'} {skill.improvement}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-card-title text-foreground">{skill.score}%</span>
+                      <span className="text-body-sm text-foreground/40">{skill.readiness}% ready</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn('h-full rounded-full transition-all duration-500', skill.score >= 85 ? 'bg-primary' : skill.score >= 70 ? 'bg-foreground/70' : 'bg-foreground/50')}
+                        style={{ width: `${skill.readiness}%` }}
+                      />
                     </div>
                   </motion.div>
-                </div>
-                <span className="text-body-sm font-medium text-foreground/40">{day.day}</span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
 
+      {(weeklyPerformance.length > 0 || overallScore != null) && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {weeklyPerformance.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}
+              className="rounded-lg border border-border bg-background p-6"
+            >
+              <SectionHeader title="Weekly Performance" subtitle="Your trend over the last 7 days" icon={LineChart} />
+              <div className="mt-6 flex items-end justify-between gap-2" style={{ height: '180px' }}>
+                {weeklyPerformance.map((day, i) => (
+                  <motion.div
+                    key={day.day}
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.65 + i * 0.05 }}
+                    className="group relative flex flex-1 flex-col items-center gap-2"
+                  >
+                    <div className="relative w-full" style={{ height: '140px' }}>
+                      <div className="absolute bottom-0 left-0 right-0 h-full rounded-md bg-secondary" />
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${day.score}%` }}
+                        transition={{ duration: 0.8, delay: 0.7 + i * 0.05, ease: 'easeOut' }}
+                        className="absolute bottom-0 left-0 right-0 rounded-md bg-primary transition-all duration-300"
+                        style={{ minHeight: '12px' }}
+                      >
+                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-primary px-2 py-0.5 text-body-sm text-primary-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          {day.score}%
+                        </div>
+                      </motion.div>
+                    </div>
+                    <span className="text-body-sm font-medium text-foreground/40">{day.day}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {overallScore != null && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.65 }}
+              className="rounded-lg border border-border bg-background p-6"
+            >
+              <SectionHeader title="Score Comparison" subtitle="How you stack up" icon={BarChart3} />
+              <div className="mt-4 rounded-md bg-secondary p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="h-4 w-4 text-foreground" />
+                  <span className="text-eyebrow text-foreground">Above Average</span>
+                </div>
+                <p className="text-body-sm text-foreground/60">
+                  Your score of <span className="font-medium text-foreground">{overallScore}%</span> is <span className="font-medium text-foreground">{Math.abs(overallScore - 74)}% {overallScore >= 74 ? 'higher' : 'lower'}</span> than the average candidate.
+                  {overallScore >= 80 && " You're in the Top 20% of performers."}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {recommendedTopics.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.65 }}
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}
           className="rounded-lg border border-border bg-background p-6"
         >
-          <SectionHeader title="Score Comparison" subtitle="How you stack up" icon={BarChart3} />
-          <div className="mt-4 rounded-md bg-secondary p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-foreground" />
-              <span className="text-eyebrow text-foreground">Above Average</span>
+          <SectionHeader title="AI Recommendations" subtitle="Personalized practice plan" icon={Sparkles} />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <h4 className="text-body-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <Target className="h-4 w-4 text-foreground" />
+                Recommended Topics
+              </h4>
+              <div className="space-y-3">
+                {recommendedTopics.map((topic, i) => (
+                  <motion.div
+                    key={topic.name}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.75 + i * 0.1 }}
+                    className="flex items-center justify-between rounded-md border border-border bg-background px-4 py-3 transition-colors hover:bg-secondary"
+                  >
+                    <div className="flex items-center gap-3">
+                      <BookOpen className="h-4 w-4 text-foreground/60" />
+                      <span className="text-body-sm text-foreground/70">{topic.name}</span>
+                    </div>
+                    <span className={cn(
+                      'rounded-pill px-2.5 py-0.5 text-body-sm font-medium',
+                      topic.priority === 'High' ? 'bg-block-pink text-foreground' : 'bg-block-cream text-foreground'
+                    )}>
+                      {topic.priority}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-            <p className="text-body-sm text-foreground/60">
-              Your score of <span className="font-medium text-foreground">82%</span> is <span className="font-medium text-foreground">8% higher</span> than the average candidate.
-              You&apos;re in the <span className="font-medium text-foreground">Top 20%</span> of performers.
-            </p>
           </div>
         </motion.div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}
-        className="rounded-lg border border-border bg-background p-6"
-      >
-        <SectionHeader title="AI Recommendations" subtitle="Personalized practice plan" icon={Sparkles} />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div>
-            <h4 className="text-body-sm font-medium text-foreground mb-3 flex items-center gap-2">
-              <Target className="h-4 w-4 text-foreground" />
-              Recommended Topics
-            </h4>
-            <div className="space-y-3">
-              {recommendedTopics.map((topic, i) => (
-                <motion.div
-                  key={topic.name}
-                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.75 + i * 0.1 }}
-                  className="flex items-center justify-between rounded-md border border-border bg-background px-4 py-3 transition-colors hover:bg-secondary"
-                >
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-4 w-4 text-foreground/60" />
-                    <span className="text-body-sm text-foreground/70">{topic.name}</span>
-                  </div>
-                  <span className={cn(
-                    'rounded-pill px-2.5 py-0.5 text-body-sm font-medium',
-                    topic.priority === 'High' ? 'bg-block-pink text-foreground' : 'bg-block-cream text-foreground'
-                  )}>
-                    {topic.priority}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h4 className="text-body-sm font-medium text-foreground mb-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-foreground/60" />
-              Daily Practice Plan
-            </h4>
-            <div className="space-y-3">
-              {[
-                { day: 'Today', task: 'Review System Design feedback + 2 practice questions', duration: '45 min' },
-                { day: 'Tomorrow', task: 'Practice behavioral questions with STAR method', duration: '30 min' },
-                { day: 'Day 3', task: 'Advanced React patterns deep dive + coding', duration: '60 min' },
-                { day: 'Day 4', task: 'Full mock interview - Google SWE simulation', duration: '60 min' },
-              ].map((plan, i) => (
-                <motion.div
-                  key={plan.day}
-                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 + i * 0.1 }}
-                  className="rounded-md border border-border bg-background px-4 py-3 transition-colors hover:bg-secondary"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={cn('text-body-sm font-medium', i === 0 ? 'text-foreground' : 'text-foreground/40')}>{plan.day}</span>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-foreground/30" />
-                      <span className="text-body-sm text-foreground/30">{plan.duration}</span>
-                    </div>
-                  </div>
-                  <p className="text-body-sm text-foreground/60">{plan.task}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.75 }}
@@ -661,5 +648,22 @@ export default function FeedbackPage() {
         </Link>
       </motion.div>
     </AppShell>
+  )
+}
+
+export default function FeedbackPage() {
+  return (
+    <Suspense fallback={
+      <AppShell>
+        <div className="flex items-center justify-center py-20">
+          <div className="flex items-center gap-2 text-foreground/50">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+            <span className="text-sm">Loading...</span>
+          </div>
+        </div>
+      </AppShell>
+    }>
+      <FeedbackPageContent />
+    </Suspense>
   )
 }

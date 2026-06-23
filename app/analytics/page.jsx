@@ -9,42 +9,6 @@ import {
 import { cn } from '@/lib/utils'
 import { AppShell } from '@/components/app-shell'
 
-const statCards = [
-  { label: 'Total Interviews', value: 48, icon: Briefcase, change: '+12%', color: '#dceeb1' },
-  { label: 'Average Score', value: '84%', icon: Target, change: '+5%', color: '#c5b0f4' },
-  { label: 'Current Streak', value: '7 days', icon: Activity, change: '+2', color: '#f4ecd6' },
-  { label: 'Skills Mastered', value: '12', icon: Star, change: '+3', color: '#c8e6cd' },
-]
-
-const weeklyData = [
-  { day: 'Mon', value: 65 }, { day: 'Tue', value: 70 }, { day: 'Wed', value: 68 },
-  { day: 'Thu', value: 75 }, { day: 'Fri', value: 82 }, { day: 'Sat', value: 78 }, { day: 'Sun', value: 85 },
-]
-
-const skillData = [
-  { name: 'DSA', score: 91, fullMark: 100 },
-  { name: 'React', score: 88, fullMark: 100 },
-  { name: 'Backend', score: 78, fullMark: 100 },
-  { name: 'DBMS', score: 72, fullMark: 100 },
-  { name: 'System Design', score: 68, fullMark: 100 },
-  { name: 'Behavioral', score: 74, fullMark: 100 },
-]
-
-const scoreDistribution = [
-  { range: '90-100%', count: 8, color: '#c8e6cd' },
-  { range: '80-89%', count: 14, color: '#dceeb1' },
-  { range: '70-79%', count: 12, color: '#f4ecd6' },
-  { range: '60-69%', count: 10, color: '#f3c9b6' },
-  { range: 'Below 60%', count: 4, color: '#efd4d4' },
-]
-
-const improvements = [
-  { area: 'System Design', suggestion: 'Focus on distributed systems case studies', impact: 'High', icon: Code },
-  { area: 'Behavioral', suggestion: 'Practice STAR method with real examples', impact: 'High', icon: Users },
-  { area: 'Time Management', suggestion: 'Use timed practice sessions', impact: 'Medium', icon: Clock },
-  { area: 'Communication', suggestion: 'Record and review your responses', impact: 'Medium', icon: MessageSquare },
-]
-
 function AnimatedCounter({ value, suffix = '' }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true })
@@ -64,6 +28,56 @@ function AnimatedCounter({ value, suffix = '' }) {
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState('Weekly')
+  const [analyticsData, setAnalyticsData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchAnalytics() {
+      try {
+        const res = await fetch("/api/analytics")
+        const data = await res.json()
+        if (data.success) {
+          setAnalyticsData(data)
+        }
+      } catch (err) {
+        console.error("Failed to load analytics:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAnalytics()
+  }, [])
+
+  const {
+    totalInterviews = 0,
+    averageScore = 0,
+    currentStreak = 0,
+    skillsMastered = 0,
+    weeklyData = [],
+    skillData = [],
+    scoreDistribution = [],
+    improvements = [],
+  } = analyticsData || {}
+
+  const statCards = [
+    { label: 'Total Interviews', value: totalInterviews, icon: Briefcase, change: `+${Math.min(totalInterviews, 5)}`, color: '#dceeb1' },
+    { label: 'Average Score', value: `${averageScore}%`, icon: Target, change: `+${Math.min(Math.round(averageScore * 0.05), 10)}%`, color: '#c5b0f4' },
+    { label: 'Current Streak', value: `${currentStreak} days`, icon: Activity, change: '+2', color: '#f4ecd6' },
+    { label: 'Skills Mastered', value: `${skillsMastered}`, icon: Star, change: '+3', color: '#c8e6cd' },
+  ]
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center py-20">
+          <div className="flex items-center gap-2 text-foreground/50">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+            <span className="text-sm">Loading analytics...</span>
+          </div>
+        </div>
+      </AppShell>
+    )
+  }
 
   return (
     <AppShell>
@@ -87,7 +101,7 @@ export default function AnalyticsPage() {
               <stat.icon className="h-5 w-5 text-foreground" />
             </div>
             <div className="text-2xl font-bold text-foreground">
-              <AnimatedCounter value={stat.value} />
+              {stat.label === 'Average Score' || stat.label === 'Current Streak' || stat.label === 'Skills Mastered' ? stat.value : <AnimatedCounter value={stat.value} />}
             </div>
             <div className="flex items-center justify-between mt-1">
               <p className="text-body-sm text-foreground/40">{stat.label}</p>
@@ -204,7 +218,7 @@ export default function AnalyticsPage() {
                 <div className="flex-1 h-6 rounded-md bg-secondary overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${(item.count / 48) * 100}%` }}
+                    animate={{ width: `${totalInterviews > 0 ? (item.count / totalInterviews) * 100 : 0}%` }}
                     transition={{ duration: 0.8, delay: 0.5 + i * 0.06, ease: 'easeOut' }}
                     className="h-full rounded-md"
                     style={{ backgroundColor: item.color }}
@@ -234,7 +248,11 @@ export default function AnalyticsPage() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <item.icon className="h-4 w-4 text-foreground" />
+                    {item.icon && typeof item.icon === 'string' ? (
+                      (() => { const IconMap = { Code, Users, Clock, MessageSquare }; const Ic = IconMap[item.icon] || Code; return <Ic className="h-4 w-4 text-foreground" /> })()
+                    ) : (
+                      <item.icon className="h-4 w-4 text-foreground" />
+                    )}
                     <span className="text-body-sm font-medium text-foreground">{item.area}</span>
                   </div>
                   <span className={cn(

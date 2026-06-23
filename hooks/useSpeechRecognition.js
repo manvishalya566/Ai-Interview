@@ -86,13 +86,22 @@ export function useSpeechRecognition() {
     }
   }, [createRecognition, stop])
 
+  const startAfterDelayRef = useRef(null)
+
   useEffect(() => {
     const unsub = useInterviewStore.subscribe((state) => {
       if (state.interviewState === 'active' && !state.isSpeaking && !state.isGenerating) {
-        if (!isListeningRef.current) {
-          start()
+        if (!isListeningRef.current && !startAfterDelayRef.current) {
+          startAfterDelayRef.current = setTimeout(() => {
+            startAfterDelayRef.current = null
+            start()
+          }, 500)
         }
       } else {
+        if (startAfterDelayRef.current) {
+          clearTimeout(startAfterDelayRef.current)
+          startAfterDelayRef.current = null
+        }
         if (isListeningRef.current) {
           stop()
           const finalText = useInterviewStore.getState().transcript
@@ -108,6 +117,9 @@ export function useSpeechRecognition() {
     })
 
     return () => {
+      if (startAfterDelayRef.current) {
+        clearTimeout(startAfterDelayRef.current)
+      }
       unsub()
       stop()
     }

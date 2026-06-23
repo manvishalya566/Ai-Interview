@@ -1,59 +1,136 @@
 'use client'
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Bot, History, MessageSquare,
-  Upload, FileText, CheckCircle, X,
+  Bot, Upload, FileText, CheckCircle, X,
   ArrowRight, Sparkles, Brain,
-  Code, Database, Layers, Users,
+  Code, Database, Users,
   User, Briefcase, Server, Cloud,
-  Zap, Shield, Cpu,
-  Globe, Terminal, BookOpen, Lightbulb,
-  Loader2, BookMarked,
-  GraduationCap, Star, Clock
+  Zap, Cpu,
+  Terminal, Loader2, BookMarked,
+  Clock, AlertCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppShell } from '@/components/app-shell'
-import { FigmaButton } from '@/components/ui/figma-button'
 
-const extractedSkills = [
-  { label: 'React.js', category: 'Frontend', level: 95, icon: Code },
-  { label: 'Node.js', category: 'Backend', level: 88, icon: Server },
-  { label: 'Python', category: 'Language', level: 82, icon: Terminal },
-  { label: 'PostgreSQL', category: 'Database', level: 78, icon: Database },
-  { label: 'TypeScript', category: 'Language', level: 90, icon: Code },
-  { label: 'AWS', category: 'Cloud', level: 75, icon: Cloud },
-  { label: 'Docker', category: 'DevOps', level: 72, icon: Cpu },
-  { label: 'GraphQL', category: 'API', level: 80, icon: Layers },
+const SKILL_KEYWORDS = [
+  { keyword: 'react', label: 'React', category: 'Frontend', icon: Code },
+  { keyword: 'angular', label: 'Angular', category: 'Frontend', icon: Code },
+  { keyword: 'vue', label: 'Vue', category: 'Frontend', icon: Code },
+  { keyword: 'next.js', label: 'Next.js', category: 'Frontend', icon: Code },
+  { keyword: 'typescript', label: 'TypeScript', category: 'Language', icon: Code },
+  { keyword: 'javascript', label: 'JavaScript', category: 'Language', icon: Code },
+  { keyword: 'python', label: 'Python', category: 'Language', icon: Terminal },
+  { keyword: 'java', label: 'Java', category: 'Language', icon: Terminal },
+  { keyword: 'node', label: 'Node.js', category: 'Backend', icon: Server },
+  { keyword: 'express', label: 'Express', category: 'Backend', icon: Server },
+  { keyword: 'graphql', label: 'GraphQL', category: 'API', icon: Zap },
+  { keyword: 'rest', label: 'REST APIs', category: 'API', icon: Zap },
+  { keyword: 'postgresql', label: 'PostgreSQL', category: 'Database', icon: Database },
+  { keyword: 'mongodb', label: 'MongoDB', category: 'Database', icon: Database },
+  { keyword: 'mysql', label: 'MySQL', category: 'Database', icon: Database },
+  { keyword: 'redis', label: 'Redis', category: 'Database', icon: Database },
+  { keyword: 'aws', label: 'AWS', category: 'Cloud', icon: Cloud },
+  { keyword: 'docker', label: 'Docker', category: 'DevOps', icon: Cpu },
+  { keyword: 'kubernetes', label: 'Kubernetes', category: 'DevOps', icon: Cpu },
+  { keyword: 'git', label: 'Git', category: 'Tools', icon: Code },
+  { keyword: 'sql', label: 'SQL', category: 'Database', icon: Database },
+  { keyword: 'html', label: 'HTML', category: 'Frontend', icon: Code },
+  { keyword: 'css', label: 'CSS', category: 'Frontend', icon: Code },
+  { keyword: 'tailwind', label: 'Tailwind CSS', category: 'Frontend', icon: Code },
+  { keyword: 'flutter', label: 'Flutter', category: 'Mobile', icon: Cpu },
+  { keyword: 'react native', label: 'React Native', category: 'Mobile', icon: Cpu },
+  { keyword: 'go', label: 'Go', category: 'Language', icon: Terminal },
+  { keyword: 'rust', label: 'Rust', category: 'Language', icon: Terminal },
+  { keyword: 'c++', label: 'C++', category: 'Language', icon: Terminal },
+  { keyword: 'c#', label: 'C#', category: 'Language', icon: Terminal },
 ]
 
-const extractedExperience = [
-  { role: 'Senior Frontend Engineer', company: 'Tech Corp', period: '2023 - Present', description: 'Led migration to micro-frontend architecture' },
-  { role: 'Full Stack Developer', company: 'StartupX', period: '2021 - 2023', description: 'Built scalable RESTful APIs and React UIs' },
-  { role: 'Software Engineer Intern', company: 'BigTech Inc', period: '2020 - 2021', description: 'Developed internal tools using Node.js & React' },
-]
+function extractSkills(text) {
+  const lower = text.toLowerCase()
+  const found = SKILL_KEYWORDS.reduce((acc, s) => {
+    const regex = new RegExp(`\\b${s.keyword.replace(/[.+*?^${}()|[\]\\]/g, '\\$&')}`, 'i')
+    if (regex.test(lower)) {
+      if (!acc.find(a => a.label === s.label)) {
+        acc.push({ ...s })
+      }
+    }
+    return acc
+  }, [])
+  return found
+}
 
-const extractedProjects = [
-  { name: 'E-Commerce Platform', tech: 'React, Node.js, PostgreSQL', description: 'Full-stack online marketplace with real-time payments' },
-  { name: 'AI Chat Assistant', tech: 'Python, TensorFlow, FastAPI', description: 'Conversational AI with NLP capabilities' },
-  { name: 'DevOps Dashboard', tech: 'React, Docker, AWS', description: 'Real-time infrastructure monitoring dashboard' },
-]
+function extractExperience(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  const expKeywords = ['experience', 'work', 'employment', 'professional', 'career']
+  const startIdx = lines.findIndex(l => expKeywords.some(k => l.toLowerCase().includes(k)))
+  if (startIdx === -1) return []
 
-const suggestedTopics = [
-  { title: 'React', icon: Code, questions: 24 },
-  { title: 'Node.js', icon: Server, questions: 18 },
-  { title: 'DBMS', icon: Database, questions: 15 },
-  { title: 'DSA', icon: Cpu, questions: 30 },
-  { title: 'HR Questions', icon: Users, questions: 12 },
-]
+  const entries = []
+  let current = {}
+  for (let i = startIdx + 1; i < Math.min(startIdx + 30, lines.length); i++) {
+    const line = lines[i]
+    if (line.length < 5) continue
 
-const features = [
-  { title: 'Resume-Based Questions', description: 'AI generates questions specifically tailored to your resume content and experience level', icon: FileText },
-  { title: 'Deep AI Analysis', description: 'Advanced NLP extracts skills, technologies, and experience patterns from your resume', icon: Brain },
-  { title: 'Personalized Interview', description: 'Every interview is uniquely crafted based on your background and target role', icon: User },
-  { title: 'Instant Feedback', description: 'Get real-time AI feedback on your answers with actionable improvement suggestions', icon: Zap },
-]
+    const dateMatch = line.match(/(\d{4})\s*[-–—to]+\s*(\d{4}|present|current)/i)
+
+    if (dateMatch) {
+      if (current.role && current.company) {
+        entries.push(current)
+      }
+      current = { period: line, role: '', company: '', description: '' }
+    } else if (current.period && !current.role) {
+      const parts = line.split(/[-–—]|at|@|,|\|/).map(s => s.trim()).filter(Boolean)
+      current.role = parts[0] || line
+      current.company = parts[1] || ''
+    } else if (current.role && current.period) {
+      current.description = (current.description + ' ' + line).trim()
+    }
+  }
+  if (current.role && current.period) entries.push(current)
+  return entries.slice(0, 5)
+}
+
+function extractProjects(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  const projKeywords = ['project', 'portfolio', 'key achievement', 'notable work']
+  const startIdx = lines.findIndex(l => projKeywords.some(k => l.toLowerCase().includes(k)))
+  if (startIdx === -1) return []
+
+  const entries = []
+  let current = {}
+  for (let i = startIdx + 1; i < Math.min(startIdx + 20, lines.length); i++) {
+    const line = lines[i]
+    if (line.length < 5) continue
+
+    const techKeywords = ['using', 'built with', 'technologies', 'tech stack', 'react', 'node', 'python', 'aws', 'docker']
+    const hasTech = techKeywords.some(k => line.toLowerCase().includes(k))
+
+    if (/^[A-Z][A-Za-z0-9\s\-]{3,40}$/.test(line.trim()) && !hasTech) {
+      if (current.name) entries.push(current)
+      current = { name: line.trim(), tech: '', description: '' }
+    } else if (current.name && !current.tech && hasTech) {
+      current.tech = line.trim()
+    } else if (current.name) {
+      current.description = (current.description + ' ' + line).trim()
+    }
+  }
+  if (current.name) entries.push(current)
+  return entries.slice(0, 5)
+}
+
+function extractName(text) {
+  const firstLine = text.split('\n').find(l => l.trim().length > 0)
+  if (firstLine) {
+    const cleaned = firstLine.replace(/^(resume|cv|curriculum vitae)[:\s]*/i, '').trim()
+    if (cleaned.length > 2 && cleaned.length < 60 && !cleaned.includes('http')) {
+      return cleaned
+    }
+  }
+  return null
+}
 
 function SectionHeader({ title, subtitle, action }) {
   return (
@@ -100,6 +177,7 @@ function SkillBar({ label, level, icon: Icon, delay = 0 }) {
 }
 
 export default function ResumeUploadPage() {
+  const router = useRouter()
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [uploaded, setUploaded] = useState(false)
@@ -107,25 +185,109 @@ export default function ResumeUploadPage() {
   const [showAnalysis, setShowAnalysis] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated] = useState(false)
+  const [resumeData, setResumeData] = useState(null)
+  const [extractedSkills, setExtractedSkills] = useState([])
+  const [extractedExperience, setExtractedExperience] = useState([])
+  const [extractedProjects, setExtractedProjects] = useState([])
+  const [error, setError] = useState(null)
+  const [generateError, setGenerateError] = useState(null)
   const inputRef = useRef(null)
+
+  const handleFile = async (file) => {
+    setFile(file); setUploading(true); setError(null)
+    try {
+      const formData = new FormData()
+      formData.append('resume', file)
+      const res = await fetch('/api/resume-upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.success) {
+        setResumeData(data)
+        const text = data.extractedText || ''
+        setExtractedSkills(extractSkills(text))
+        setExtractedExperience(extractExperience(text))
+        setExtractedProjects(extractProjects(text))
+        setUploading(false); setUploaded(true)
+        setTimeout(() => setShowAnalysis(true), 800)
+      } else {
+        setError(data.message || 'Upload failed')
+        setUploading(false)
+      }
+    } catch {
+      setError('Failed to upload resume. Please try again.')
+      setUploading(false)
+    }
+  }
 
   const handleDragOver = useCallback((e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }, [])
   const handleDragLeave = useCallback((e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }, [])
   const handleDrop = useCallback((e) => {
     e.preventDefault(); e.stopPropagation(); setDragOver(false)
     const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile && droppedFile.type === 'application/pdf') handleFile(droppedFile)
+    if (droppedFile && droppedFile.type === 'application/pdf') {
+      handleFile(droppedFile)
+    } else if (droppedFile) {
+      setError('Only PDF files are supported')
+    }
   }, [])
   const handleFileSelect = (e) => { const f = e.target.files[0]; if (f) handleFile(f) }
-  const handleFile = (file) => {
-    setFile(file); setUploading(true)
-    setTimeout(() => { setUploading(false); setUploaded(true); setTimeout(() => setShowAnalysis(true), 800) }, 2000)
+
+  const handleGenerate = async () => {
+    setGenerating(true); setGenerateError(null)
+    try {
+      const res = await fetch('/api/interview/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeText: resumeData?.extractedText || '' }),
+      })
+      const data = await res.json()
+      if (data.success && data.questions?.length > 0) {
+        sessionStorage.setItem('interviewQuestions', JSON.stringify(data.questions))
+        sessionStorage.setItem('interviewResume', resumeData?.extractedText || '')
+        setGenerating(false); setGenerated(true)
+      } else {
+        setGenerateError(data.error || 'Failed to generate questions')
+        setGenerating(false)
+      }
+    } catch {
+      setGenerateError('Failed to generate interview. Please try again.')
+      setGenerating(false)
+    }
   }
-  const handleGenerate = () => { setGenerating(true); setTimeout(() => { setGenerating(false); setGenerated(true) }, 2500) }
+
   const resetUpload = () => {
     setFile(null); setUploading(false); setUploaded(false); setShowAnalysis(false); setGenerated(false)
+    setResumeData(null); setError(null); setGenerateError(null);
+    setExtractedSkills([]); setExtractedExperience([]); setExtractedProjects([])
     if (inputRef.current) inputRef.current.value = ''
   }
+
+  const resumeName = resumeData?.fileName || file?.name || 'resume.pdf'
+  const candidateName = resumeData?.extractedText ? extractName(resumeData.extractedText) : null
+
+  const suggestedTopics = extractedSkills.length > 0
+    ? [...new Set(extractedSkills.map(s => s.category))].map(cat => {
+      const count = extractedSkills.filter(s => s.category === cat).length
+      const firstSkill = extractedSkills.find(s => s.category === cat)
+      return {
+        title: cat,
+        icon: firstSkill?.icon || Code,
+        questions: Math.max(count * 3, 10),
+      }
+    })
+    : [
+      { title: 'Frontend', icon: Code, questions: 20 },
+      { title: 'Backend', icon: Server, questions: 18 },
+      { title: 'Database', icon: Database, questions: 15 },
+      { title: 'System Design', icon: Cpu, questions: 25 },
+      { title: 'Behavioral', icon: Users, questions: 12 },
+    ]
+
+  const features = [
+    { title: 'Resume-Based Questions', description: 'AI generates questions specifically tailored to your resume content and experience level', icon: FileText },
+    { title: 'Deep AI Analysis', description: 'Advanced NLP extracts skills, technologies, and experience patterns from your resume', icon: Brain },
+    { title: 'Personalized Interview', description: 'Every interview is uniquely crafted based on your background and target role', icon: User },
+    { title: 'Instant Feedback', description: 'Get real-time AI feedback on your answers with actionable improvement suggestions', icon: Zap },
+  ]
 
   return (
     <AppShell>
@@ -164,6 +326,19 @@ export default function ResumeUploadPage() {
           </div>
         </div>
       </motion.div>
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-4"
+        >
+          <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
+          <p className="text-body-sm text-red-300">{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto shrink-0 text-red-400 hover:text-red-300">
+            <X className="h-4 w-4" />
+          </button>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
@@ -222,7 +397,7 @@ export default function ResumeUploadPage() {
                 <div className="mt-3 flex flex-wrap items-center gap-4 justify-center sm:justify-start">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-foreground/60" />
-                    <span className="text-body-sm font-medium text-foreground/70">{file?.name || 'resume.pdf'}</span>
+                    <span className="text-body-sm font-medium text-foreground/70">{resumeName}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-foreground/40" />
@@ -277,7 +452,9 @@ export default function ResumeUploadPage() {
               </div>
               <div>
                 <h2 className="text-card-title text-foreground">AI Analysis Complete</h2>
-                <p className="text-body-sm text-foreground/40">Our AI has analyzed your resume and extracted the following information</p>
+                <p className="text-body-sm text-foreground/40">
+                  {candidateName ? `Resume parsed for ${candidateName}` : 'Our AI has analyzed your resume and extracted the following information'}
+                </p>
               </div>
             </motion.div>
 
@@ -285,12 +462,16 @@ export default function ResumeUploadPage() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="rounded-lg border border-border bg-background p-6"
             >
-              <SectionHeader title="Extracted Skills" subtitle="Technologies and competencies identified from your resume" />
-              <div className="grid gap-2 sm:grid-cols-2">
-                {extractedSkills.map((skill, i) => (
-                  <SkillBar key={skill.label} {...skill} delay={0.2 + i * 0.04} />
-                ))}
-              </div>
+              <SectionHeader title="Extracted Skills" subtitle={`${extractedSkills.length} technologies and competencies identified from your resume`} />
+              {extractedSkills.length > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {extractedSkills.map((skill, i) => (
+                    <SkillBar key={skill.label} label={skill.label} level={85} icon={skill.icon} delay={0.2 + i * 0.04} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-body-sm text-foreground/40 italic">No specific skills could be auto-detected. Skills will be analyzed during interview generation.</p>
+              )}
             </motion.div>
 
             <div className="grid gap-6 lg:grid-cols-2">
@@ -298,63 +479,73 @@ export default function ResumeUploadPage() {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                 className="rounded-lg border border-border bg-background p-6"
               >
-                <SectionHeader title="Work Experience" subtitle="Professional history extracted from resume" />
-                <div className="space-y-4">
-                  {extractedExperience.map((exp, i) => (
-                    <motion.div
-                      key={exp.role}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + i * 0.08 }}
-                      className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-secondary"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary">
-                            <Briefcase className="h-4 w-4 text-foreground" />
+                <SectionHeader title="Work Experience" subtitle={`${extractedExperience.length} positions identified`} />
+                {extractedExperience.length > 0 ? (
+                  <div className="space-y-4">
+                    {extractedExperience.map((exp, i) => (
+                      <motion.div
+                        key={exp.role + i}
+                        initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + i * 0.08 }}
+                        className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-secondary"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary">
+                              <Briefcase className="h-4 w-4 text-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-body-sm font-medium text-foreground">{exp.role || 'Role'}</p>
+                              {exp.company && <p className="text-eyebrow text-foreground/40">{exp.company}</p>}
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-body-sm font-medium text-foreground">{exp.role}</p>
-                            <p className="text-eyebrow text-foreground/40">{exp.company}</p>
-                          </div>
+                          {exp.period && <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-eyebrow text-foreground/40">{exp.period}</span>}
                         </div>
-                        <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-eyebrow text-foreground/40">{exp.period}</span>
-                      </div>
-                      <p className="mt-2 ml-12 text-eyebrow text-foreground/50">{exp.description}</p>
-                    </motion.div>
-                  ))}
-                </div>
+                        {exp.description && <p className="mt-2 ml-12 text-eyebrow text-foreground/50">{exp.description}</p>}
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-body-sm text-foreground/40 italic">Work experience will be analyzed during interview generation.</p>
+                )}
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
                 className="rounded-lg border border-border bg-background p-6"
               >
-                <SectionHeader title="Projects" subtitle="Key projects identified from your resume" />
-                <div className="space-y-4">
-                  {extractedProjects.map((project, i) => (
-                    <motion.div
-                      key={project.name}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.35 + i * 0.08 }}
-                      className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-secondary"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary">
-                          <Code className="h-4 w-4 text-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-body-sm font-medium text-foreground">{project.name}</p>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            {project.tech.split(', ').map((t) => (
-                              <span key={t} className="rounded-pill bg-secondary px-2 py-0.5 text-eyebrow text-foreground/40">{t}</span>
-                            ))}
+                <SectionHeader title="Projects" subtitle={`${extractedProjects.length} key projects identified`} />
+                {extractedProjects.length > 0 ? (
+                  <div className="space-y-4">
+                    {extractedProjects.map((project, i) => (
+                      <motion.div
+                        key={project.name + i}
+                        initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.35 + i * 0.08 }}
+                        className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-secondary"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary">
+                            <Code className="h-4 w-4 text-foreground" />
                           </div>
-                          <p className="mt-2 text-eyebrow text-foreground/50">{project.description}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-body-sm font-medium text-foreground">{project.name}</p>
+                            {project.tech && (
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                {project.tech.split(/[,;]\s*/).map((t) => (
+                                  <span key={t} className="rounded-pill bg-secondary px-2 py-0.5 text-eyebrow text-foreground/40">{t}</span>
+                                ))}
+                              </div>
+                            )}
+                            {project.description && <p className="mt-2 text-eyebrow text-foreground/50">{project.description}</p>}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-body-sm text-foreground/40 italic">Projects will be analyzed during interview generation.</p>
+                )}
               </motion.div>
             </div>
 
@@ -370,6 +561,11 @@ export default function ResumeUploadPage() {
                 Generate a personalized mock interview based on your resume. Our AI will create questions
                 tailored to your skills, experience, and target roles.
               </p>
+              {generateError && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 text-body-sm text-red-400">
+                  {generateError}
+                </motion.p>
+              )}
               {!generated ? (
                 <button
                   onClick={handleGenerate}
@@ -388,11 +584,14 @@ export default function ResumeUploadPage() {
                     <CheckCircle className="h-5 w-5" />
                     <span className="font-semibold">Interview Generated Successfully!</span>
                   </div>
-                  <Link href="/interview" className="inline-flex items-center gap-2 rounded-pill bg-primary px-8 py-4 text-button text-primary-foreground transition-colors hover:bg-foreground/80">
+                  <button
+                    onClick={() => router.push('/interview')}
+                    className="inline-flex items-center gap-2 rounded-pill bg-primary px-8 py-4 text-button text-primary-foreground transition-colors hover:bg-foreground/80"
+                  >
                     <Bot className="h-5 w-5" />
                     <span>Start Interview Now</span>
                     <ArrowRight className="h-5 w-5" />
-                  </Link>
+                  </button>
                 </motion.div>
               )}
             </motion.div>
@@ -404,7 +603,7 @@ export default function ResumeUploadPage() {
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
         className="rounded-lg border border-border bg-background p-6"
       >
-        <SectionHeader title="AI Suggested Topics" subtitle="Based on your resume, our AI recommends focusing on these areas" />
+        <SectionHeader title="Suggested Focus Areas" subtitle="Based on your resume, these are the key areas to focus on" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {suggestedTopics.map((topic, i) => (
             <motion.div
@@ -420,9 +619,6 @@ export default function ResumeUploadPage() {
               <div className="mt-3 flex items-center justify-center gap-1.5">
                 <BookMarked className="h-3.5 w-3.5 text-foreground/40" />
                 <span className="text-eyebrow text-foreground/40">{topic.questions} questions available</span>
-              </div>
-              <div className="mt-4 flex justify-center">
-                <span className="rounded-pill bg-background px-3 py-1 text-eyebrow text-foreground/50 transition-colors hover:bg-primary hover:text-primary-foreground">Practice Now</span>
               </div>
             </motion.div>
           ))}

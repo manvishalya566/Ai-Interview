@@ -12,7 +12,12 @@ export async function POST(req) {
     await connectDB();
 
     const body = await req.json();
-    const { questions, answers, scores, overallScore, feedback, skillsAssessed, duration, type } = body;
+    const {
+      questions, answers, scores, overallScore, feedback, skillsAssessed,
+      duration, type, company, role, difficulty, questionFeedback,
+      strengths, weaknesses, aiSuggestions, recommendedTopics,
+      skillBreakdown, status,
+    } = body;
 
     const interview = await Interview.create({
       userId: authResult.userId,
@@ -23,7 +28,17 @@ export async function POST(req) {
       feedback,
       skillsAssessed: skillsAssessed || [],
       duration,
-      type,
+      type: type || "Technical",
+      company: company || "General",
+      role: role || "Software Engineer",
+      difficulty: difficulty || "Medium",
+      questionFeedback: questionFeedback || [],
+      strengths: strengths || [],
+      weaknesses: weaknesses || [],
+      aiSuggestions: aiSuggestions || [],
+      recommendedTopics: recommendedTopics || [],
+      skillBreakdown: skillBreakdown || [],
+      status: status || "Completed",
     });
 
     return Response.json({ success: true, interview });

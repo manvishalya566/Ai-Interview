@@ -28,6 +28,8 @@ interface InterviewStore {
   selectedCategory: string
   errorMessage: string | null
   repeatCount: number
+  userAnswers: string[]
+  questionsAsked: string[]
 
   setInterviewState: (s: InterviewStore['interviewState']) => void
   setIsSpeaking: (v: boolean) => void
@@ -40,6 +42,7 @@ interface InterviewStore {
   setTranscript: (t: string) => void
   addTranscriptEntry: (entry: TranscriptEntry) => void
   clearTranscript: () => void
+  saveCurrentAnswer: () => void
   setAskedQuestions: (q: string[]) => void
   setSelectedCategory: (c: string) => void
   setErrorMessage: (msg: string | null) => void
@@ -61,6 +64,8 @@ const initialState = {
   selectedCategory: 'react',
   errorMessage: null as string | null,
   repeatCount: 0,
+  userAnswers: [] as string[],
+  questionsAsked: [] as string[],
 }
 
 export const useInterviewStore = create<InterviewStore>((set) => ({
@@ -81,6 +86,15 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
   setTranscript: (transcript) => set({ transcript }),
   addTranscriptEntry: (entry) => set((s) => ({ fullTranscript: [...s.fullTranscript, entry] })),
   clearTranscript: () => set({ transcript: '', fullTranscript: [] }),
+  saveCurrentAnswer: () => set((s) => {
+    const currentQ = s.questionPool[s.currentQIdx]
+    if (!currentQ) return s
+    const answer = s.transcript.trim()
+    return {
+      userAnswers: [...s.userAnswers, answer || ''],
+      questionsAsked: [...s.questionsAsked, currentQ.question],
+    }
+  }),
   setAskedQuestions: (askedQuestions) => set({ askedQuestions }),
   setSelectedCategory: (selectedCategory) => set({ selectedCategory }),
   setErrorMessage: (errorMessage) => set({ errorMessage }),

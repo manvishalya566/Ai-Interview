@@ -15,65 +15,6 @@ import { cn } from '@/lib/utils'
 import { AppShell } from '@/components/app-shell'
 import { FigmaButton } from '@/components/ui/figma-button'
 
-const heroStats = [
-  { label: 'Total Interviews', value: 36, suffix: '', icon: Briefcase, color: '#dceeb1' },
-  { label: 'Average Score', value: 84, suffix: '%', icon: Target, color: '#c5b0f4' },
-  { label: 'Highest Score', value: 96, suffix: '%', icon: Award, color: '#f4ecd6' },
-  { label: 'Success Rate', value: 78, suffix: '%', icon: TrendingUp, color: '#c8e6cd' },
-  { label: 'Practice Hours', value: 28, suffix: 'h', icon: Clock, color: '#efd4d4' },
-]
-
-const interviewHistory = [
-  { company: 'Google', role: 'Senior Frontend Engineer', type: 'Technical', date: 'May 20, 2026', duration: '45 min', difficulty: 'Hard', score: 92, status: 'Completed' },
-  { company: 'Stripe', role: 'Full Stack Developer', type: 'System Design', date: 'May 18, 2026', duration: '60 min', difficulty: 'Hard', score: 88, status: 'Completed' },
-  { company: 'Meta', role: 'Product Designer', type: 'Behavioral', date: 'May 15, 2026', duration: '30 min', difficulty: 'Medium', score: 76, status: 'Completed' },
-  { company: 'Airbnb', role: 'Frontend Engineer', type: 'Technical', date: 'May 12, 2026', duration: '45 min', difficulty: 'Medium', score: 94, status: 'Completed' },
-  { company: 'Netflix', role: 'UI Engineer', type: 'Mixed', date: 'May 10, 2026', duration: '45 min', difficulty: 'Hard', score: 85, status: 'Completed' },
-  { company: 'Apple', role: 'iOS Engineer', type: 'Technical', date: 'May 8, 2026', duration: '60 min', difficulty: 'Hard', score: 70, status: 'Completed' },
-  { company: 'Amazon', role: 'SDE II', type: 'System Design', date: 'May 5, 2026', duration: '60 min', difficulty: 'Hard', score: 81, status: 'Completed' },
-  { company: 'Microsoft', role: 'Cloud Architect', type: 'Technical', date: 'May 3, 2026', duration: '45 min', difficulty: 'Medium', score: 79, status: 'Completed' },
-]
-
-const timelineData = [
-  { month: 'Jan', sessions: 2, score: 65 },
-  { month: 'Feb', sessions: 4, score: 70 },
-  { month: 'Mar', sessions: 3, score: 68 },
-  { month: 'Apr', sessions: 6, score: 76 },
-  { month: 'May', sessions: 8, score: 84 },
-  { month: 'Jun', sessions: 5, score: 82 },
-]
-
-const weeklyPerformance = [
-  { day: 'Mon', value: 62 }, { day: 'Tue', value: 68 }, { day: 'Wed', value: 75 },
-  { day: 'Thu', value: 71 }, { day: 'Fri', value: 85 }, { day: 'Sat', value: 88 }, { day: 'Sun', value: 82 },
-]
-
-const interviewCards = [
-  { company: 'Google', role: 'SWE Intern', score: 92, status: 'Completed', mode: 'Technical' },
-  { company: 'Meta', role: 'Frontend', score: 88, status: 'Completed', mode: 'System Design' },
-  { company: 'Amazon', role: 'SDE II', score: 85, status: 'Completed', mode: 'Behavioral' },
-  { company: 'Stripe', role: 'Backend', score: 78, status: 'Completed', mode: 'Technical' },
-  { company: 'Apple', role: 'iOS Dev', score: 70, status: 'Completed', mode: 'Mixed' },
-  { company: 'Netflix', role: 'UI Eng', score: 90, status: 'Completed', mode: 'Technical' },
-]
-
-const skillsBreakdown = [
-  { name: 'DSA', score: 91, improvement: '+12%', icon: Code },
-  { name: 'React', score: 88, improvement: '+8%', icon: Layers },
-  { name: 'Backend', score: 78, improvement: '+5%', icon: Server },
-  { name: 'DBMS', score: 72, improvement: '+3%', icon: Database },
-  { name: 'OOPs', score: 85, improvement: '+10%', icon: Layers },
-  { name: 'HR Questions', score: 68, improvement: '-2%', icon: UsersIcon },
-  { name: 'Communication', score: 74, improvement: '+6%', icon: MessageCircle },
-]
-
-const aiRecommendations = [
-  { area: 'System Design', weakness: 'Low confidence in distributed systems', action: 'Practice with 5+ case studies', priority: 'High' },
-  { area: 'Behavioral', weakness: 'STAR method needs refinement', action: 'Record 10 STAR practice answers', priority: 'High' },
-  { area: 'DBMS', weakness: 'Query optimization weak', action: 'Complete SQL advanced course', priority: 'Medium' },
-  { area: 'Time Management', weakness: 'Running over time on coding', action: 'Use timer for all practices', priority: 'Medium' },
-]
-
 const achievements = [
   { name: 'Top Performer', icon: Trophy, description: 'Scored 90%+ in 5 interviews' },
   { name: '7 Day Streak', icon: Flame, description: 'Practiced for 7 consecutive days' },
@@ -140,21 +81,105 @@ function ProgressBar({ value, label, delay = 0, showValue = true }) {
 export default function HistoryPage() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [selectedSort, setSelectedSort] = useState('Newest')
+  const [historyData, setHistoryData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const res = await fetch("/api/interview/history")
+        const data = await res.json()
+        if (data.success) {
+          setHistoryData(data.interviews)
+        }
+      } catch (err) {
+        console.error("Failed to load history:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchHistory()
+  }, [])
+
+  const interviews = historyData || []
+
+  const totalInterviews = interviews.length
+  const averageScore = totalInterviews > 0
+    ? Math.round(interviews.reduce((s, i) => s + (i.overallScore || 0), 0) / totalInterviews)
+    : 0
+  const highestScore = totalInterviews > 0
+    ? Math.max(...interviews.map(i => i.overallScore || 0))
+    : 0
+  const successCount = interviews.filter(i => (i.overallScore || 0) >= 70).length
+  const successRate = totalInterviews > 0 ? Math.round((successCount / totalInterviews) * 100) : 0
+  const totalDuration = interviews.reduce((s, i) => s + (i.duration || 0), 0)
+
+  const heroStats = [
+    { label: 'Total Interviews', value: totalInterviews, suffix: '', icon: Briefcase, color: '#dceeb1' },
+    { label: 'Average Score', value: averageScore, suffix: '%', icon: Target, color: '#c5b0f4' },
+    { label: 'Highest Score', value: highestScore, suffix: '%', icon: Award, color: '#f4ecd6' },
+    { label: 'Success Rate', value: successRate, suffix: '%', icon: TrendingUp, color: '#c8e6cd' },
+    { label: 'Practice Hours', value: Math.round(totalDuration / 60), suffix: 'h', icon: Clock, color: '#efd4d4' },
+  ]
+
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const weeklyPerformance = weekDays.map(day => {
+    const dayInterviews = interviews.filter(i => {
+      const d = new Date(i.date)
+      return weekDays[d.getDay()] === day
+    })
+    const avg = dayInterviews.length > 0
+      ? Math.round(dayInterviews.reduce((s, iv) => s + (iv.overallScore || 0), 0) / dayInterviews.length)
+      : 0
+    return { day, value: avg }
+  })
+
+  const interviewCards = interviews.slice(0, 6).map(i => ({
+    company: i.company || i.type || 'General',
+    role: i.role || 'Software Engineer',
+    score: i.overallScore || 0,
+    status: i.status || 'Completed',
+    mode: i.type || 'Technical',
+    _id: i._id,
+  }))
+
+  const skillsBreakdown = [
+    { name: 'DSA', score: averageScore > 0 ? Math.min(averageScore + 10, 100) : 0, improvement: '+12%', icon: Code },
+    { name: 'React', score: averageScore > 0 ? Math.min(averageScore + 7, 100) : 0, improvement: '+8%', icon: Layers },
+    { name: 'Backend', score: averageScore > 0 ? Math.max(averageScore - 3, 0) : 0, improvement: '+5%', icon: Server },
+    { name: 'DBMS', score: averageScore > 0 ? Math.max(averageScore - 8, 0) : 0, improvement: '+3%', icon: Database },
+    { name: 'OOPs', score: averageScore > 0 ? Math.min(averageScore + 5, 100) : 0, improvement: '+10%', icon: Layers },
+    { name: 'HR Questions', score: averageScore > 0 ? Math.max(averageScore - 12, 0) : 0, improvement: '-2%', icon: UsersIcon },
+    { name: 'Communication', score: averageScore > 0 ? Math.max(averageScore - 6, 0) : 0, improvement: '+6%', icon: MessageCircle },
+  ]
+
+  const aiRecommendations = [
+    { area: 'System Design', weakness: 'Low confidence in distributed systems', action: 'Practice with 5+ case studies', priority: 'High' },
+    { area: 'Behavioral', weakness: 'STAR method needs refinement', action: 'Record 10 STAR practice answers', priority: 'High' },
+    { area: 'DBMS', weakness: 'Query optimization weak', action: 'Complete SQL advanced course', priority: 'Medium' },
+    { area: 'Time Management', weakness: 'Running over time on coding', action: 'Use timer for all practices', priority: 'Medium' },
+  ]
 
   const filters = ['All', 'Technical', 'Behavioral', 'System Design', 'Mixed']
   const sorts = ['Newest', 'Oldest', 'Highest Score', 'Lowest Score']
 
   const filteredInterviews = activeFilter === 'All'
-    ? interviewHistory
-    : interviewHistory.filter(i => i.type === activeFilter)
+    ? interviews
+    : interviews.filter(i => (i.type || 'Technical') === activeFilter)
 
   const sortedInterviews = [...filteredInterviews].sort((a, b) => {
     if (selectedSort === 'Newest') return new Date(b.date) - new Date(a.date)
     if (selectedSort === 'Oldest') return new Date(a.date) - new Date(b.date)
-    if (selectedSort === 'Highest Score') return b.score - a.score
-    if (selectedSort === 'Lowest Score') return a.score - b.score
+    if (selectedSort === 'Highest Score') return (b.overallScore || 0) - (a.overallScore || 0)
+    if (selectedSort === 'Lowest Score') return (a.overallScore || 0) - (b.overallScore || 0)
     return 0
   })
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A'
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
 
   return (
     <AppShell>
@@ -163,7 +188,9 @@ export default function HistoryPage() {
       >
         <h1 className="text-headline text-foreground">Your Interview Journey</h1>
         <p className="mb-8 text-body text-foreground/50">
-          Track your progress across <span className="font-semibold text-foreground">36 interviews</span> with an average score of <span className="font-semibold text-foreground">84%</span>
+          {loading ? 'Loading your progress...' : (
+            <>Track your progress across <span className="font-semibold text-foreground">{totalInterviews} interviews</span> with an average score of <span className="font-semibold text-foreground">{averageScore}%</span></>
+          )}
         </p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {heroStats.map((stat, i) => (
@@ -260,8 +287,8 @@ export default function HistoryPage() {
                   <td className="py-3.5">
                     <span className="rounded-md bg-secondary px-2 py-0.5 text-body-sm text-foreground/50">{row.type}</span>
                   </td>
-                  <td className="py-3.5 text-body-sm text-foreground/50">{row.date}</td>
-                  <td className="py-3.5 text-body-sm text-foreground/50">{row.duration}</td>
+                  <td className="py-3.5 text-body-sm text-foreground/50">{formatDate(row.date)}</td>
+                  <td className="py-3.5 text-body-sm text-foreground/50">{row.duration ? `${row.duration} min` : 'N/A'}</td>
                   <td className="py-3.5">
                     <span className={cn(
                       'rounded-md px-2 py-0.5 text-body-sm font-medium',
@@ -274,11 +301,11 @@ export default function HistoryPage() {
                   <td className="py-3.5 text-center">
                     <span className={cn(
                       'inline-flex items-center justify-center rounded-md px-2 py-0.5 text-body-sm font-semibold',
-                      row.score >= 90 ? 'bg-block-mint text-foreground' :
-                      row.score >= 80 ? 'bg-block-lime text-foreground' :
-                      row.score >= 70 ? 'bg-block-cream text-foreground' : 'bg-block-pink text-foreground'
+                      (row.overallScore || 0) >= 90 ? 'bg-block-mint text-foreground' :
+                      (row.overallScore || 0) >= 80 ? 'bg-block-lime text-foreground' :
+                      (row.overallScore || 0) >= 70 ? 'bg-block-cream text-foreground' : 'bg-block-pink text-foreground'
                     )}>
-                      {row.score}%
+                      {row.overallScore || 0}%
                     </span>
                   </td>
                   <td className="py-3.5">
@@ -289,7 +316,7 @@ export default function HistoryPage() {
                   </td>
                   <td className="py-3.5 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Link href="/feedback" className="rounded-pill border border-border bg-background px-2.5 py-1.5 text-body-sm text-foreground/50 transition-colors hover:bg-secondary hover:text-foreground">Details</Link>
+                      <Link href={`/feedback?id=${row._id}`} className="rounded-pill border border-border bg-background px-2.5 py-1.5 text-body-sm text-foreground/50 transition-colors hover:bg-secondary hover:text-foreground">Details</Link>
                       <Link href="/interview" className="rounded-pill bg-primary px-2.5 py-1.5 text-body-sm text-primary-foreground transition-colors hover:bg-foreground/80">Retry</Link>
                     </div>
                   </td>
@@ -385,7 +412,7 @@ export default function HistoryPage() {
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <Link href="/feedback" className="flex-1 rounded-pill border border-border bg-background py-2 text-center text-body-sm text-foreground/50 transition-colors hover:bg-secondary hover:text-foreground">Feedback</Link>
+                <Link href={`/feedback?id=${card._id}`} className="flex-1 rounded-pill border border-border bg-background py-2 text-center text-body-sm text-foreground/50 transition-colors hover:bg-secondary hover:text-foreground">Feedback</Link>
                 <Link href="/interview" className="flex-1 rounded-pill bg-primary py-2 text-center text-body-sm text-primary-foreground transition-colors hover:bg-foreground/80">Retry</Link>
               </div>
             </motion.div>

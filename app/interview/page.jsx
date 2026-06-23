@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -251,6 +252,8 @@ export default function InterviewPage() {
   const requestLockRef = useRef({ isLoading: false })
   const clickLockRef = useRef(false)
 
+  const router = useRouter()
+
   const interviewState = useInterviewStore((s) => s.interviewState)
   const isSpeaking = useInterviewStore((s) => s.isSpeaking)
   const isGenerating = useInterviewStore((s) => s.isGenerating)
@@ -260,6 +263,8 @@ export default function InterviewPage() {
   const currentQIdx = useInterviewStore((s) => s.currentQIdx)
   const askedQuestions = useInterviewStore((s) => s.askedQuestions)
   const errorMessage = useInterviewStore((s) => s.errorMessage)
+  const userAnswers = useInterviewStore((s) => s.userAnswers)
+  const questionsAsked = useInterviewStore((s) => s.questionsAsked)
 
   const getFallbackQuestions = (categoryId, count) => {
     const pool = FALLBACK_QUESTIONS[categoryId] || FALLBACK_QUESTIONS.react
@@ -360,6 +365,7 @@ export default function InterviewPage() {
     useInterviewStore.getState().setQuestionPool([])
     useInterviewStore.getState().setCurrentQIdx(0)
     useInterviewStore.getState().setAskedQuestions([])
+    useInterviewStore.setState({ userAnswers: [], questionsAsked: [] })
     webcam.startCamera()
 
     try {
@@ -376,6 +382,7 @@ export default function InterviewPage() {
     clickLockRef.current = true
 
     try {
+      useInterviewStore.getState().saveCurrentAnswer()
       useInterviewStore.getState().resetTimer()
       useInterviewStore.getState().clearTranscript()
 
@@ -394,9 +401,75 @@ export default function InterviewPage() {
     }
   }, [selectedCategory, askedQuestions])
 
-  const handleEndInterview = useCallback(() => {
-    useInterviewStore.getState().setInterviewState('completed')
-  }, [])
+  const handleEndInterview = useCallback(async () => {
+    const store = useInterviewStore.getState()
+    if (store.isGenerating) return
+
+    store.saveCurrentAnswer()
+    store.setIsGenerating(true)
+    store.setInterviewState('completed')
+
+    const questions = store.questionsAsked
+    const answers = store.userAnswers
+    const duration = Math.floor(store.timerSeconds / 60)
+    const techstack = store.selectedCategory
+
+    let analysis = {}
+
+    try {
+      if (questions.length > 0) {
+        const analyzeRes = await fetch("/api/interview/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questions,
+            answers,
+            techstack,
+            level: "Medium",
+            role: "Software Engineer",
+          }),
+        })
+        const analyzeData = await analyzeRes.json()
+        if (analyzeData.success) analysis = analyzeData
+      }
+    } catch (err) {
+      console.error("[handleEndInterview] analyze error:", err)
+    }
+
+    try {
+      const submitRes = await fetch("/api/interview/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questions,
+          answers,
+          duration,
+          type: techstack ? "Technical" : "Mixed",
+          skillsAssessed: [techstack],
+          overallScore: analysis.overallScore ?? null,
+          feedback: analysis.feedback || "",
+          questionFeedback: analysis.questionFeedback || [],
+          scores: analysis.scores || {},
+          strengths: analysis.strengths || [],
+          weaknesses: analysis.weaknesses || [],
+          aiSuggestions: analysis.aiSuggestions || [],
+          recommendedTopics: analysis.recommendedTopics || [],
+          skillBreakdown: analysis.skillBreakdown || [],
+          status: "Completed",
+        }),
+      })
+
+      const submitData = await submitRes.json()
+
+      if (submitData.success && submitData.interview?._id) {
+        router.push(`/feedback?id=${submitData.interview._id}`)
+      }
+    } catch (err) {
+      console.error("[handleEndInterview] submit error:", err)
+    } finally {
+      store.setIsGenerating(false)
+    }
+  }, [router])
 
   const handleRetry = useCallback(() => {
     handleStartInterview()
