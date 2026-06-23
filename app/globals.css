@@ -5,38 +5,47 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
+  --background: #fcfcff;
+  --foreground: #0a0a0f;
   --card: #ffffff;
-  --card-foreground: #000000;
+  --card-foreground: #0a0a0f;
   --popover: #ffffff;
-  --popover-foreground: #000000;
+  --popover-foreground: #0a0a0f;
   --primary: #ff3d8b;
   --primary-foreground: #ffffff;
-  --secondary: #fcf0f0;
-  --secondary-foreground: #000000;
-  --muted: #f5e8e8;
-  --muted-foreground: #000000;
-  --accent: #ff3d8b;
+  --secondary: #f5f0ff;
+  --secondary-foreground: #0a0a0f;
+  --muted: #f0eeff;
+  --muted-foreground: #6b6a7a;
+  --accent: #8b5cf6;
   --accent-foreground: #ffffff;
-  --destructive: #efd4d4;
-  --destructive-foreground: #000000;
-  --border: #e6e6e6;
-  --input: #e6e6e6;
-  --ring: #ff3d8b;
+  --destructive: #fef2f2;
+  --destructive-foreground: #dc2626;
+  --border: #e8e7f0;
+  --input: #e8e7f0;
+  --ring: #c084fc;
   --chart-1: #dceeb1;
   --chart-2: #c5b0f4;
   --chart-3: #f4ecd6;
   --chart-4: #f3c9b6;
   --chart-5: #c8e6cd;
   --sidebar: #ffffff;
-  --sidebar-foreground: #000000;
+  --sidebar-foreground: #0a0a0f;
   --sidebar-primary: #ff3d8b;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #fcf0f0;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: #e6e6e6;
-  --sidebar-ring: #ff3d8b;
+  --sidebar-accent: #f5f0ff;
+  --sidebar-accent-foreground: #0a0a0f;
+  --sidebar-border: #e8e7f0;
+  --sidebar-ring: #c084fc;
+
+  --gradient-start: #ff4d9d;
+  --gradient-mid-1: #ff6bcb;
+  --gradient-mid-2: #c084fc;
+  --gradient-end: #8b5cf6;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
 }
 
 @theme inline {
@@ -80,7 +89,7 @@
   --color-hairline-soft: #f1f1f1;
   --color-surface-soft: #f7f7f5;
   --color-ink: #000000;
-  --color-canvas: #ffffff;
+  --color-canvas: #fcfcff;
   --color-inverse-canvas: #000000;
   --color-inverse-ink: #ffffff;
   --color-block-lime: #dceeb1;
@@ -93,6 +102,15 @@
   --color-accent-magenta: #ff3d8b;
   --color-semantic-success: #1ea64a;
   --color-overlay-scrim: #000000;
+
+  --color-gradient-start: #ff4d9d;
+  --color-gradient-mid-1: #ff6bcb;
+  --color-gradient-mid-2: #c084fc;
+  --color-gradient-end: #8b5cf6;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
 
   --text-display-xl: 86px;
   --text-display-xl--font-weight: 340;
@@ -161,6 +179,62 @@
   --radius-pill: 50px;
   --radius-full: 9999px;
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-8px) rotate(1deg); }
+  66% { transform: translateY(-4px) rotate(-1deg); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(196, 132, 252, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(196, 132, 252, 0.6); }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(100px) rotate(720deg) scale(0); opacity: 0; }
+}
+
+@keyframes blob-morph {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25% { border-radius: 40% 60% 70% 30% / 40% 60% 30% 70%; }
+  50% { border-radius: 30% 70% 60% 40% / 70% 40% 60% 30%; }
+  75% { border-radius: 70% 30% 40% 60% / 30% 70% 40% 60%; }
+}
+
+@keyframes gradient-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes bar-rising {
+  from { height: 0%; }
+}
+
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+.animate-sparkle { animation: sparkle 2s ease-in-out infinite; }
+.animate-shimmer { background-size: 200% auto; animation: shimmer 3s linear infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-blob { animation: blob-morph 8s ease-in-out infinite; }
+.animate-gradient-rotate { background-size: 200% 200%; animation: gradient-rotate 4s ease infinite; }
 
 html {
   font-feature-settings: "kern";

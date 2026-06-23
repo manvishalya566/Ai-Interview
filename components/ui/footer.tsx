@@ -2,11 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Brain, Globe, MessageSquare, Users } from "lucide-react"
+import { Brain, Globe, MessageSquare, Users, Sparkles } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const footerLinkGroups = {
+const footerLinkGroups: Record<string, { href: string; label: string }[]> = {
   "Quick Links": [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/interview", label: "Interview" },
@@ -31,44 +31,49 @@ function Footer({ className, ...props }: FooterProps) {
   return (
     <footer
       data-slot="footer"
-      className={cn("bg-background border-t border-border", className)}
+      className={cn("bg-[#0a0a0f] border-t border-white/5", className)}
       {...props}
     >
       <div className="mx-auto max-w-[1280px] px-6 lg:px-8 py-16">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div className="md:col-span-2 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Brain className="h-5 w-5 text-primary-foreground" />
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF4D9D] via-[#C084FC] to-[#8B5CF6] shadow-lg shadow-[#C084FC]/30 transition-transform duration-300 group-hover:scale-105">
+                <Brain className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-[480] text-foreground">MockAI</span>
+              <span className="text-lg font-bold tracking-tight text-white">MockAI</span>
+              <Sparkles className="h-3.5 w-3.5 text-[#C084FC]" />
             </Link>
-            <p className="mt-4 text-[16px] font-[330] leading-[1.45] text-foreground/60">
+            <p className="mt-5 text-sm text-white/40 leading-relaxed max-w-sm">
               AI-powered mock interviews to help you land your dream job. Practice smart, interview with confidence.
             </p>
-            <div className="mt-6 flex gap-4">
-              <a href="#" className="rounded-full p-2 bg-secondary text-foreground/60 hover:text-foreground transition-colors">
-                <Globe className="size-4" />
-              </a>
-              <a href="#" className="rounded-full p-2 bg-secondary text-foreground/60 hover:text-foreground transition-colors">
-                <MessageSquare className="size-4" />
-              </a>
-              <a href="#" className="rounded-full p-2 bg-secondary text-foreground/60 hover:text-foreground transition-colors">
-                <Users className="size-4" />
-              </a>
+            <div className="mt-8 flex gap-3">
+              {[
+                { icon: Globe, href: "#" },
+                { icon: MessageSquare, href: "#" },
+                { icon: Users, href: "#" },
+              ].map(({ icon: Icon, href }) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/40 hover:bg-gradient-to-br hover:from-[#FF4D9D] hover:to-[#8B5CF6] hover:text-white transition-all duration-300"
+                >
+                  <Icon className="size-4" />
+                </a>
+              ))}
             </div>
           </div>
           {Object.entries(footerLinkGroups).map(([heading, links]) => (
             <div key={heading}>
-              <h4 className="mb-4 text-[12px] font-[400] font-mono uppercase tracking-[0.60px] text-foreground/40">
+              <h4 className="mb-5 text-xs font-semibold uppercase tracking-wider text-white/30">
                 {heading}
               </h4>
-              <ul className="space-y-3">
+              <ul className="space-y-3.5">
                 {links.map((link) => (
                   <li key={link.href + link.label}>
                     <Link
                       href={link.href}
-                      className="text-[16px] font-[330] text-foreground/60 hover:text-foreground transition-colors"
+                      className="text-sm text-white/50 hover:text-white transition-all duration-200 hover:translate-x-0.5 inline-block"
                     >
                       {link.label}
                     </Link>
@@ -78,10 +83,14 @@ function Footer({ className, ...props }: FooterProps) {
             </div>
           ))}
         </div>
-        <div className="mt-12 border-t border-border pt-8 text-center">
-          <p className="text-[12px] font-[400] font-mono uppercase tracking-[0.60px] text-foreground/40">
+        <div className="mt-14 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-white/30">
             &copy; {new Date().getFullYear()} MockAI. All rights reserved.
           </p>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-white/20">Built with</span>
+            <span className="text-xs bg-gradient-to-r from-[#FF4D9D] to-[#8B5CF6] bg-clip-text text-transparent font-semibold">AI</span>
+          </div>
         </div>
       </div>
     </footer>
