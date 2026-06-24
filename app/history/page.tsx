@@ -244,7 +244,6 @@ export default function HistoryPage() {
       </AnimatePresence>
 
       <DashboardSidebar
-        user={user}
         collapsed={!sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         mobileOpen={mobileSidebarOpen}

@@ -67,14 +67,13 @@ const NavItem = memo(function NavItem({ href, label, icon: Icon, collapsed, isAc
   )
 })
 
-export const DashboardSidebar = memo(function DashboardSidebar({ user, collapsed, mobileOpen, onMobileClose }: {
-  user?: any
+export const DashboardSidebar = memo(function DashboardSidebar({ collapsed, mobileOpen, onMobileClose }: {
   collapsed?: boolean
   onToggle?: () => void
   mobileOpen?: boolean
   onMobileClose?: () => void
 }) {
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const pathname = usePathname()
 
   const initial = user?.name?.charAt(0)?.toUpperCase() || 'U'

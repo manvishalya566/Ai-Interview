@@ -243,7 +243,6 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       <DashboardSidebar
-        user={user}
         collapsed={!sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         mobileOpen={mobileSidebarOpen}

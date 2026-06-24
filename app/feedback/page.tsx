@@ -1019,7 +1019,6 @@ export default function FeedbackPage() {
       </AnimatePresence>
 
       <DashboardSidebar
-        user={user}
         collapsed={!sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         mobileOpen={mobileSidebarOpen}

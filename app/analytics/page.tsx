@@ -107,7 +107,6 @@ export default function AnalyticsPage() {
   return (
     <div className="flex min-h-screen bg-[#fcfcff]">
       <DashboardSidebar
-        user={user}
         collapsed={!sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         mobileOpen={mobileSidebarOpen}

@@ -90,8 +90,7 @@ const questionCategories: QuestionCategory[] = [
 
 const tabs: TabItem[] = [
   { id: 'interview', label: 'Interview', icon: Bot },
-  { id: 'coding', label: 'Coding', icon: Terminal },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+ 
 ]
 
 const COOLDOWN_MS = 15000
@@ -219,95 +218,8 @@ const FALLBACK_QUESTIONS: Record<string, string[]> = {
   ],
 }
 
-const aiFeedbackData: MetricItem[] = [
-  { label: 'Confidence', value: 82 },
-  { label: 'Communication', value: 76 },
-  { label: 'Technical Accuracy', value: 88 },
-  { label: 'Eye Contact', value: 70 },
-  { label: 'Speaking Speed', value: 85 },
-]
-
-const progressMetrics: MetricItem[] = [
-  { label: 'Overall Performance', value: 84 },
-  { label: 'Problem Solving', value: 78 },
-  { label: 'Communication', value: 72 },
-  { label: 'Technical Knowledge', value: 88 },
-]
-
-const improvementSuggestions: string[] = [
-  'Use more structured responses with STAR methodology',
-  'Reduce filler words like "um" and "like"',
-  'Practice time-boxed coding challenges daily',
-  'Improve eye contact and body language',
-]
-
-const aiInsightsData: InsightItem[] = [
-  { label: 'Performance Trend', value: '+12%', icon: TrendingUp, detail: 'Improving consistently over last 5 sessions' },
-  { label: 'Interview Readiness', value: '85%', icon: Award, detail: 'Ready for top-tier company interviews' },
-  { label: 'Recommended Focus', value: 'System Design', icon: Lightbulb, detail: 'Focus on distributed systems & scaling' },
-  { label: 'AI Suggestion', value: 'Practice DSA', icon: Bot, detail: 'Complete 3 more mock interviews this week' },
-]
-
-const recentSessions: SessionItem[] = [
-  { date: '2026-06-10', topic: 'React', score: 82, duration: '15:32', status: 'completed' },
-  { date: '2026-06-08', topic: 'System Design', score: 75, duration: '18:00', status: 'completed' },
-  { date: '2026-06-05', topic: 'DSA', score: 88, duration: '20:15', status: 'completed' },
-  { date: '2026-06-01', topic: 'Backend', score: 70, duration: '12:45', status: 'completed' },
-]
-
-const codingHints: HintItem[] = [
-  { hint: 'Consider using dynamic programming with a 2D table.', revealed: true },
-  { hint: 'Each character is a palindrome of length 1.', revealed: false },
-  { hint: 'For substrings of length > 2, check if the first and last characters match and the inner substring is a palindrome.', revealed: false },
-  { hint: 'Track the start index and maximum length found so far.', revealed: false },
-]
-
 const defaultCode = '// Write your solution here\n\nfunction solve(input) {\n  // Your code\n  return null;\n}'
 
-function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  useEffect(() => {
-    const duration = 2000
-    const steps = 60
-    const increment = value / steps
-    let current = 0
-    const timer = setInterval(() => {
-      current += increment
-      if (current >= value) {
-        setCount(value)
-        clearInterval(timer)
-      } else {
-        setCount(Math.floor(current))
-      }
-    }, duration / steps)
-    return () => clearInterval(timer)
-  }, [value])
-  return <span>{count}{suffix}</span>
-}
-
-function SectionHeader({ title, subtitle, action }: {
-  title: string
-  subtitle?: string
-  action?: { href: string; label: string }
-}) {
-  return (
-    <div className="flex items-end justify-between mb-md">
-      <div>
-        <h3 className="text-headline text-[#0a0a0f]/90">{title}</h3>
-        {subtitle && <p className="mt-xs text-body-sm text-[#6b6a7a]">{subtitle}</p>}
-      </div>
-      {action && (
-        <Link
-          href={action.href}
-          className="group flex items-center gap-1 text-body-sm text-[#6b6a7a] transition-colors hover:text-[#0a0a0f]"
-        >
-          {action.label}
-          <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-        </Link>
-      )}
-    </div>
-  )
-}
 
 function GradientBlob({ className }: { className?: string }) {
   return (
@@ -687,28 +599,8 @@ export default function InterviewPage() {
                   <div className="grid gap-lg lg:grid-cols-2">
                     <GlassCard className="relative overflow-hidden" hover>
                       <div className="absolute inset-0 bg-gradient-to-br from-[#FF4D9D]/5 via-[#C084FC]/5 to-transparent pointer-events-none" />
-                      <Interviewer3D showEmojiReactions={true} />
-                      {interviewState === 'active' && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10"
-                        >
-                          <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-xl border border-[#e8e7f0] px-4 py-1.5 shadow-lg">
-                            <motion.div
-                              animate={isSpeaking ? { scale: [1, 1.3, 1] } : {}}
-                              transition={{ duration: 0.8, repeat: Infinity }}
-                              className={cn(
-                                'h-2 w-2 rounded-full',
-                                isSpeaking ? 'bg-accent' : isGenerating ? 'bg-yellow-400' : 'bg-semantic-success'
-                              )}
-                            />
-                            <span className="text-xs font-medium text-[#6b6a7a]">
-                              {isSpeaking ? 'Speaking' : isGenerating ? 'Thinking' : 'Listening'}
-                            </span>
-                          </div>
-                        </motion.div>
-                      )}
+                      <Interviewer3D />
+                     
                     </GlassCard>
 
                     <div className="space-y-md">
@@ -730,7 +622,7 @@ export default function InterviewPage() {
                           transition={{ delay: 0.2 }}
                           className="flex items-center justify-center"
                         >
-                          <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-xl border border-[#e8e7f0] px-3 py-2 shadow-lg">
+                          <div className="flex items-center gap-2 transform -translate-y-[100%] mt-[-50px] rounded-full bg-white/80 backdrop-blur-xl border border-[#e8e7f0] px-3 py-2 shadow-lg">
                             <motion.button
                               whileTap={{ scale: 0.9 }}
                               onClick={webcam.toggleMic}
@@ -776,249 +668,7 @@ export default function InterviewPage() {
                 </motion.div>
               )}
 
-              {activeTab === 'coding' && (
-                <motion.div
-                  key="coding"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative z-10 space-y-lg"
-                >
-                  {/* Editor + Output */}
-                  <div className="grid gap-lg lg:grid-cols-3">
-                    <GlassCard className="overflow-hidden lg:col-span-2" hover>
-                      <div className="flex items-center justify-between border-b border-[#e8e7f0] px-md py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex gap-1.5">
-                            <div className="h-3 w-3 rounded-full bg-[#e8e7f0]" />
-                            <div className="h-3 w-3 rounded-full bg-[#e8e7f0]" />
-                            <div className="h-3 w-3 rounded-full bg-[#e8e7f0]" />
-                          </div>
-                          <span className="text-sm text-[#6b6a7a] font-mono">solution.js</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={language}
-                            onChange={(e) => setLanguage(e.target.value)}
-                            className="rounded-pill border border-[#e8e7f0] bg-white/50 px-3 py-1.5 text-xs text-[#6b6a7a] focus:outline-none focus:ring-2 focus:ring-[#C084FC]/30"
-                          >
-                            <option value="javascript">JavaScript</option>
-                            <option value="python">Python</option>
-                            <option value="java">Java</option>
-                            <option value="cpp">C++</option>
-                            <option value="typescript">TypeScript</option>
-                          </select>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleRunCode}
-                            className="inline-flex items-center gap-2 rounded-pill bg-gradient-to-r from-[#FF4D9D] via-[#C084FC] to-[#8B5CF6] text-white px-4 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-[#C084FC]/30"
-                          >
-                            <Terminal className="h-4 w-4" />
-                            Run
-                          </motion.button>
-                        </div>
-                      </div>
-
-                      <div className="relative">
-                        <div className="absolute left-0 top-0 flex flex-col gap-1 px-4 py-4 text-xs text-[#e8e7f0] select-none font-mono">
-                          {Array.from({ length: 15 }).map((_, i) => (
-                            <span key={i}>{i + 1}</span>
-                          ))}
-                        </div>
-                        <textarea
-                          value={code}
-                          onChange={(e) => setCode(e.target.value)}
-                          className="w-full min-h-[350px] bg-transparent pl-12 pr-4 py-4 font-mono text-sm text-[#0a0a0f]/80 placeholder:text-[#e8e7f0] focus:outline-none resize-none"
-                          spellCheck={false}
-                        />
-                      </div>
-                    </GlassCard>
-
-                    <GlassCard className="overflow-hidden" hover>
-                      <div className="flex items-center gap-2 border-b border-[#e8e7f0] px-md py-3">
-                        <Terminal className="h-4 w-4 text-[#6b6a7a]" />
-                        <span className="text-sm font-medium text-[#6b6a7a]">Output</span>
-                      </div>
-                      <div className="p-md font-mono text-sm text-[#6b6a7a] min-h-[350px] whitespace-pre-wrap">
-                        {codeOutput || (
-                          <span className="text-[#6b6a7a]/50">&gt; Ready to run your code...</span>
-                        )}
-                      </div>
-                    </GlassCard>
-                  </div>
-
-                  {/* Challenge Info */}
-                  <GlassCard className="p-lg" hover>
-                    <div className="flex items-start gap-md">
-                      <div className="rounded-xl bg-gradient-to-br from-[#FF4D9D]/10 via-[#C084FC]/10 to-[#8B5CF6]/10 p-3 border border-[#e8e7f0] shrink-0">
-                        <Code className="h-6 w-6 text-[#8B5CF6]" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-card-title text-[#0a0a0f]/90">Longest Palindromic Substring</h3>
-                        <p className="mt-xs text-body-sm text-[#6b6a7a] leading-relaxed">
-                          Write a function that finds the longest palindromic substring in a given string.
-                          For example, in the string &quot;babad&quot;, the longest palindromic substring is &quot;bab&quot; (or &quot;aba&quot;).
-                        </p>
-                        <div className="mt-md flex flex-wrap gap-2">
-                          <span className="rounded-pill bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-600 border border-yellow-500/10">
-                            Medium
-                          </span>
-                          <span className="rounded-pill bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500 border border-blue-500/10">
-                            Strings
-                          </span>
-                          <span className="rounded-pill bg-green-500/10 px-3 py-1 text-xs font-medium text-green-500 border border-green-500/10">
-                            Dynamic Programming
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </GlassCard>
-
-                  {/* Hints */}
-                  <GlassCard className="p-lg" hover>
-                    <SectionHeader title="Hints" subtitle="Need help? Check these hints one by one." />
-                    <div className="space-y-md">
-                      {codingHints.map((item, i) => (
-                        <div key={i} className="flex items-start gap-3 rounded-xl bg-[#f5f0ff] p-md">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/70 text-xs font-medium text-[#6b6a7a] border border-[#e8e7f0]">
-                            {i + 1}
-                          </div>
-                          <p className={cn(
-                            'text-body-sm leading-relaxed',
-                            item.revealed ? 'text-[#0a0a0f]/80' : 'text-[#6b6a7a]/30'
-                          )}>
-                            {item.revealed ? item.hint : 'Click to reveal hint...'}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </GlassCard>
-
-                  {/* Stats */}
-                  <div className="grid gap-md sm:grid-cols-3">
-                    {[
-                      { value: '78%', label: 'Acceptance Rate' },
-                      { value: '2.4k', label: 'Submissions Today' },
-                      { value: '35 min', label: 'Avg. Solve Time' },
-                    ].map((stat, i) => (
-                      <GlassCard key={i} className="p-lg text-center" hover>
-                        <p className="text-3xl font-bold bg-gradient-to-r from-[#FF4D9D] via-[#C084FC] to-[#8B5CF6] bg-clip-text text-transparent">
-                          {stat.value}
-                        </p>
-                        <p className="mt-1 text-xs text-[#6b6a7a]">{stat.label}</p>
-                      </GlassCard>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {activeTab === 'analytics' && (
-                <motion.div
-                  key="analytics"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative z-10 space-y-lg"
-                >
-                  {/* Progress Metrics */}
-                  <div className="grid gap-md sm:grid-cols-2 lg:grid-cols-4">
-                    {progressMetrics.map((metric) => (
-                      <GlassCard key={metric.label} className="p-lg" hover>
-                        <p className="text-xs font-medium text-[#6b6a7a] tracking-wide uppercase">{metric.label}</p>
-                        <p className="mt-sm text-4xl font-bold text-[#0a0a0f]/90">
-                          <AnimatedCounter value={metric.value} suffix="%" />
-                        </p>
-                        <div className="mt-md h-1.5 overflow-hidden rounded-full bg-[#f0eeff]">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${metric.value}%` }}
-                            transition={{ duration: 1.2, ease: 'easeOut' }}
-                            className="h-full rounded-full bg-gradient-to-r from-[#FF4D9D] via-[#C084FC] to-[#8B5CF6]"
-                          />
-                        </div>
-                      </GlassCard>
-                    ))}
-                  </div>
-
-                  {/* Insights */}
-                  <div className="grid gap-md lg:grid-cols-2">
-                    {aiInsightsData.map((insight) => (
-                      <GlassCard key={insight.label} className="p-lg" hover>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="rounded-xl bg-gradient-to-br from-[#FF4D9D]/10 via-[#C084FC]/10 to-[#8B5CF6]/10 p-3 border border-[#e8e7f0]">
-                              <insight.icon className="h-5 w-5 text-[#8B5CF6]" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-[#6b6a7a] tracking-wide uppercase">{insight.label}</p>
-                              <p className="text-2xl font-bold text-[#0a0a0f]/90">{insight.value}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="mt-md text-body-sm text-[#6b6a7a]">{insight.detail}</p>
-                      </GlassCard>
-                    ))}
-                  </div>
-
-                  {/* AI Suggestions */}
-                  <GlassCard className="p-lg" hover>
-                    <SectionHeader title="AI Suggestions" subtitle="Personalized tips to improve your interview performance" />
-                    <div className="space-y-md">
-                      {improvementSuggestions.map((suggestion, i) => (
-                        <div key={i} className="flex items-center gap-3 rounded-xl bg-[#f5f0ff] p-md">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#FF4D9D]/20 via-[#C084FC]/20 to-[#8B5CF6]/20">
-                            <CheckCircle className="h-4 w-4 text-[#8B5CF6]" />
-                          </div>
-                          <p className="text-body-sm text-[#0a0a0f]/70">{suggestion}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </GlassCard>
-
-                  {/* Recent Sessions */}
-                  <GlassCard className="p-lg" hover>
-                    <SectionHeader
-                      title="Recent Sessions"
-                      subtitle="Your interview history"
-                      action={{ label: 'View All', href: '/history' }}
-                    />
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-body-sm">
-                        <thead>
-                          <tr className="border-b border-[#e8e7f0]">
-                            <th className="pb-3 pr-4 font-medium text-[#6b6a7a] text-xs uppercase tracking-wide">Date</th>
-                            <th className="pb-3 pr-4 font-medium text-[#6b6a7a] text-xs uppercase tracking-wide">Topic</th>
-                            <th className="pb-3 pr-4 font-medium text-[#6b6a7a] text-xs uppercase tracking-wide">Score</th>
-                            <th className="pb-3 pr-4 font-medium text-[#6b6a7a] text-xs uppercase tracking-wide">Duration</th>
-                            <th className="pb-3 font-medium text-[#6b6a7a] text-xs uppercase tracking-wide">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {recentSessions.map((row, i) => (
-                            <tr key={i} className="border-b border-[#e8e7f0]/50 hover:bg-[#f5f0ff]/50 transition-colors">
-                              <td className="py-3 pr-4 text-[#6b6a7a]">{row.date}</td>
-                              <td className="py-3 pr-4 text-[#0a0a0f]/70">{row.topic}</td>
-                              <td className="py-3 pr-4">
-                                <span className="font-semibold text-[#0a0a0f]/80">{row.score}%</span>
-                              </td>
-                              <td className="py-3 pr-4 text-[#6b6a7a]">{row.duration}</td>
-                              <td className="py-3">
-                                <span className="inline-flex items-center gap-1 rounded-pill bg-[#22C55E]/10 px-2.5 py-0.5 text-xs font-medium text-[#22C55E]">
-                                  <CheckCircle className="h-3 w-3" />
-                                  Completed
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </GlassCard>
-                </motion.div>
-              )}
+          
             </AnimatePresence>
           </div>
         </main>

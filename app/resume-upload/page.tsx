@@ -280,7 +280,6 @@ export default function ResumeUploadPage() {
   return (
     <div className="flex min-h-screen bg-[#fcfcff]">
       <DashboardSidebar
-        user={user}
         collapsed={!sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         mobileOpen={mobileSidebarOpen}
@@ -705,7 +704,7 @@ export default function ResumeUploadPage() {
                       <Bot className="h-10 w-10 text-white" />
                     </motion.div>
                     <h3 className="mb-2 text-headline text-[#0a0a0f]">Ready for Your AI Interview?</h3>
-<p className="mb-7 text-sm text-[#6b6a7a] max-w-xl mx-auto">
+<p className="mb-7 text-sm text-[#6b6a7a] max-w-xl mx-auto break-words">
   Generate a personalized mock interview based on your resume. Our AI will create questions tailored to your skills, experience, and target roles.
 </p>
                     {generateError && (
