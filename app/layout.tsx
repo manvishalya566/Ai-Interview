@@ -53,11 +53,11 @@ export default function RootLayout({
             })
           }}
         />
-         <Script
+         {/* <Script
           src="//unpkg.com/react-scan/dist/auto.global.js"
           crossOrigin="anonymous"
           strategy="beforeInteractive"
-        />
+        /> */}
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
