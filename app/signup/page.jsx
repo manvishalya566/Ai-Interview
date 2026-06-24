@@ -379,7 +379,7 @@ export default function SignupPage() {
               transition={{ duration: 0.6, delay: 0.5 }}
               className="mt-6"
             >
-              <div className="relative">
+              {/* <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-hairline" />
                 </div>
@@ -405,7 +405,7 @@ export default function SignupPage() {
                   <GithubIcon />
                   GitHub
                 </button>
-              </div>
+              </div> */}
             </motion.div>
 
             <motion.p
