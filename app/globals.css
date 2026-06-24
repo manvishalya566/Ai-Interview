@@ -46,7 +46,154 @@
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #3b82f6;
+
+  --hairline: #e6e6e6;
+  --hairline-soft: #f1f1f1;
+  --surface-soft: #f7f7f5;
+  --ink: #000000;
+  --canvas: #fcfcff;
+  --inverse-canvas: #000000;
+  --inverse-ink: #ffffff;
+  --block-lime: #dceeb1;
+  --block-lilac: #c5b0f4;
+  --block-cream: #f4ecd6;
+  --block-pink: #efd4d4;
+  --block-mint: #c8e6cd;
+  --block-coral: #f3c9b6;
+  --block-navy: #1f1d3d;
+  --accent-magenta: #ff3d8b;
+  --semantic-success: #1ea64a;
+  --overlay-scrim: #000000;
 }
+
+.dark {
+  --background: #0a0a12;
+  --foreground: #e8e7ed;
+  --card: #12121c;
+  --card-foreground: #e8e7ed;
+  --popover: #12121c;
+  --popover-foreground: #e8e7ed;
+  --primary: #ff4d9d;
+  --primary-foreground: #ffffff;
+  --secondary: #1c1c2a;
+  --secondary-foreground: #e8e7ed;
+  --muted: #1c1c2a;
+  --muted-foreground: #8b8a9a;
+  --accent: #a78bfa;
+  --accent-foreground: #ffffff;
+  --destructive: #2d1b1b;
+  --destructive-foreground: #fca5a5;
+  --border: #1e1e2e;
+  --input: #1e1e2e;
+  --ring: #a78bfa;
+  --chart-1: #3b3b4a;
+  --chart-2: #4a4a5a;
+  --chart-3: #2a2a3a;
+  --chart-4: #1a1a2a;
+  --chart-5: #3a3a4a;
+  --sidebar: #0e0e18;
+  --sidebar-foreground: #e8e7ed;
+  --sidebar-primary: #ff4d9d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1c1c2a;
+  --sidebar-accent-foreground: #e8e7ed;
+  --sidebar-border: #1e1e2e;
+  --sidebar-ring: #a78bfa;
+
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
+
+  --hairline: #2a2a3a;
+  --hairline-soft: #1e1e2e;
+  --surface-soft: #12121c;
+  --ink: #e8e7ed;
+  --canvas: #0a0a12;
+  --inverse-canvas: #ffffff;
+  --inverse-ink: #000000;
+  --block-lime: #2a3a1a;
+  --block-lilac: #2a1a3a;
+  --block-cream: #3a3a1a;
+  --block-pink: #3a1a1a;
+  --block-mint: #1a3a2a;
+  --block-coral: #3a2a1a;
+  --block-navy: #1f1d3d;
+  --accent-magenta: #ff4d9d;
+  --semantic-success: #22c55e;
+  --overlay-scrim: #000000;
+}
+
+/* ── Hardcoded color alias tokens ── */
+/* These let us override Tailwind arbitrary-value classes in dark mode. */
+:root {
+  --_bg-page: #fcfcff;
+  --_fg-primary: #0a0a0f;
+  --_fg-muted: #6b6a7a;
+  --_fg-placeholder: #a0a0b0;
+  --_border: #e8e7f0;
+  --_bg-muted: #f0eeff;
+  --_bg-card: #ffffff;
+  --_bg-soft: #faf9ff;
+  --_bg-secondary: #f5f0ff;
+  --_bg-hover-icon: #e8e5ff;
+  --_bg-white: #ffffff;
+}
+
+.dark {
+  --_bg-page: #0a0a12;
+  --_fg-primary: #e8e7ed;
+  --_fg-muted: #8b8a9a;
+  --_fg-placeholder: #5a5a6a;
+  --_border: #1e1e2e;
+  --_bg-muted: #1c1c2a;
+  --_bg-card: #12121c;
+  --_bg-soft: #161622;
+  --_bg-secondary: #1a1a28;
+  --_bg-hover-icon: #2a2a3a;
+  --_bg-white: #12121c;
+}
+
+/* Override hardcoded arbitrary-value classes in dark mode using attribute
+   selectors. PostCSS chokes on `\[#hex\]` in plain selectors, but quoted
+   attribute values are safe. Specificity: .dark [class*="..."] = 0,2,0. */
+.dark [class*="bg-[#fcfcff]"] { background-color: var(--_bg-page) !important; }
+.dark [class*="bg-[#e8e7f0]"] { background-color: var(--_border) !important; }
+.dark [class*="bg-[#faf9ff]"] { background-color: var(--_bg-soft) !important; }
+.dark [class*="bg-[#f5f0ff]"] { background-color: var(--_bg-secondary) !important; }
+.dark [class*="bg-[#f0eeff]"] { background-color: var(--_bg-muted) !important; }
+.dark [class*="bg-[#e8e5ff]"] { background-color: var(--_bg-hover-icon) !important; }
+
+/* Solid bg-white — plain class selector won't match bg-white/XX variants */
+.dark .bg-white { background-color: var(--_bg-white) !important; }
+/* Semi-transparent bg-white/XX for frosted-glass elements in dark mode */
+.dark [class*="bg-white/80"] { background-color: color-mix(in srgb, var(--_bg-white) 80%, transparent) !important; }
+.dark [class*="bg-white/70"] { background-color: color-mix(in srgb, var(--_bg-white) 70%, transparent) !important; }
+.dark [class*="bg-white/50"] { background-color: color-mix(in srgb, var(--_bg-white) 50%, transparent) !important; }
+.dark [class*="bg-white/25"] { background-color: color-mix(in srgb, var(--_bg-white) 25%, transparent) !important; }
+.dark [class*="bg-white/20"] { background-color: color-mix(in srgb, var(--_bg-white) 20%, transparent) !important; }
+.dark [class*="bg-white/15"] { background-color: color-mix(in srgb, var(--_bg-white) 15%, transparent) !important; }
+
+.dark [class*="text-[#0a0a0f]"] { color: var(--_fg-primary) !important; }
+.dark [class*="text-[#6b6a7a]"] { color: var(--_fg-muted) !important; }
+.dark [class*="text-[#a0a0b0]"] { color: var(--_fg-placeholder) !important; }
+
+.dark [class*="border-[#e8e7f0]"] { border-color: var(--_border) !important; }
+
+.dark [class*="from-[#f5f0ff]"] { --tw-gradient-from: var(--_bg-secondary) !important; }
+.dark [class*="via-[#f5f0ff]"] { --tw-gradient-via: var(--_bg-secondary) !important; }
+
+.dark [class*="hover:bg-[#faf9ff]"]:hover { background-color: var(--_bg-soft) !important; }
+.dark [class*="hover:bg-[#f5f0ff]"]:hover { background-color: var(--_bg-secondary) !important; }
+.dark [class*="hover:bg-[#f0eeff]"]:hover { background-color: var(--_bg-muted) !important; }
+.dark [class*="hover:bg-[#e8e5ff]"]:hover { background-color: var(--_bg-hover-icon) !important; }
+
+.dark [class*="text-[#22C55E]"] { color: #4ade80 !important; }
+.dark [class*="text-[#8B5CF6]"] { color: #a78bfa !important; }
+.dark [class*="text-[#F59E0B]"] { color: #fbbf24 !important; }
+.dark [class*="text-[#EF4444]"] { color: #f87171 !important; }
+.dark [class*="text-[#3B82F6]"] { color: #60a5fa !important; }
+.dark [class*="text-[#7C3AED]"] { color: #c084fc !important; }
 
 @theme inline {
   --font-sans: var(--font-inter), "SF Pro Display", system-ui, sans-serif;
@@ -85,23 +232,23 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --color-hairline: #e6e6e6;
-  --color-hairline-soft: #f1f1f1;
-  --color-surface-soft: #f7f7f5;
-  --color-ink: #000000;
-  --color-canvas: #fcfcff;
-  --color-inverse-canvas: #000000;
-  --color-inverse-ink: #ffffff;
-  --color-block-lime: #dceeb1;
-  --color-block-lilac: #c5b0f4;
-  --color-block-cream: #f4ecd6;
-  --color-block-pink: #efd4d4;
-  --color-block-mint: #c8e6cd;
-  --color-block-coral: #f3c9b6;
-  --color-block-navy: #1f1d3d;
-  --color-accent-magenta: #ff3d8b;
-  --color-semantic-success: #1ea64a;
-  --color-overlay-scrim: #000000;
+  --color-hairline: var(--hairline);
+  --color-hairline-soft: var(--hairline-soft);
+  --color-surface-soft: var(--surface-soft);
+  --color-ink: var(--ink);
+  --color-canvas: var(--canvas);
+  --color-inverse-canvas: var(--inverse-canvas);
+  --color-inverse-ink: var(--inverse-ink);
+  --color-block-lime: var(--block-lime);
+  --color-block-lilac: var(--block-lilac);
+  --color-block-cream: var(--block-cream);
+  --color-block-pink: var(--block-pink);
+  --color-block-mint: var(--block-mint);
+  --color-block-coral: var(--block-coral);
+  --color-block-navy: var(--block-navy);
+  --color-accent-magenta: var(--accent-magenta);
+  --color-semantic-success: var(--semantic-success);
+  --color-overlay-scrim: var(--overlay-scrim);
 
   --color-gradient-start: #ff4d9d;
   --color-gradient-mid-1: #ff6bcb;

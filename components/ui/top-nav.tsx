@@ -13,6 +13,7 @@ import {
   SheetContent,
 } from "@/components/ui/sheet"
 import { useAuth } from "@/hooks/useAuth"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 const navLinks = [
   { label: "Dashboard", href: "/dashboard" },
@@ -78,7 +79,7 @@ function TopNav({ className, ...props }: TopNavProps) {
           </nav>
         )}
 
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex items-center gap-2 ml-auto">
           <div className="hidden min-[560px]:flex items-center gap-3">
             {loading ? (
               <div className="flex items-center gap-3">
@@ -112,6 +113,10 @@ function TopNav({ className, ...props }: TopNavProps) {
             )}
           </div>
 
+          <div className="hidden min-[560px]:block">
+            <ThemeToggle collapsed />
+          </div>
+
           <div className="min-[960px]:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -131,6 +136,9 @@ function TopNav({ className, ...props }: TopNavProps) {
                     <span className="text-lg font-bold tracking-tight text-[#0a0a0f]">MockAI</span>
                   </div>
                   <div className="flex-1 flex flex-col gap-1 px-4 py-6">
+                    <div className="px-4 py-2">
+                      <ThemeToggle />
+                    </div>
                     {loading ? null : isAuthenticated ? (
                       navLinks.map((link) => {
                         const isActive = pathname === link.href

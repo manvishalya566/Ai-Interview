@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, Suspense } from 'react'
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
@@ -277,6 +277,30 @@ function FeedbackPageContent() {
     : null
   const duration = interview?.duration ? `${interview.duration} min` : null
   const questionsTotal = interview?.questions?.length || 0
+
+  const [notification, setNotification] = useState<string | null>(null)
+
+  const handleShare = useCallback(async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Interview Feedback', text: 'Check out my interview feedback!', url })
+        setNotification('Shared successfully!')
+      } catch {
+        await navigator.clipboard.writeText(url)
+        setNotification('Link copied to clipboard!')
+      }
+    } else {
+      await navigator.clipboard.writeText(url)
+      setNotification('Link copied to clipboard!')
+    }
+    setTimeout(() => setNotification(null), 3000)
+  }, [])
+
+  const handleDownload = useCallback(() => {
+    if (!interviewId) return
+    window.location.href = `/api/feedback/${interviewId}/report`
+  }, [interviewId])
 
   if (loading) {
     return (
@@ -897,11 +921,11 @@ function FeedbackPageContent() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { label: 'Retry Interview', desc: 'Practice the same topics again', icon: RotateCcw, href: '/interview', gradient: 'from-[#FF4D9D] to-[#FF6BCB]' },
-                { label: 'Download Report', desc: 'Export full PDF report', icon: Download, href: '#', gradient: 'from-[#C084FC] to-[#8B5CF6]' },
-                { label: 'Share Feedback', desc: 'Share with mentors/peers', icon: Share2, href: '#', gradient: 'from-[#60A5FA] to-[#3B82F6]' },
+                { label: 'Download Report', desc: 'Export full PDF report', icon: Download, onClick: handleDownload, gradient: 'from-[#C084FC] to-[#8B5CF6]' },
+                { label: 'Share Feedback', desc: 'Share with mentors/peers', icon: Share2, onClick: handleShare, gradient: 'from-[#60A5FA] to-[#3B82F6]' },
                 { label: 'Back to Dashboard', desc: 'View your overall progress', icon: BarChart3, href: '/dashboard', gradient: 'from-[#34D399] to-[#22C55E]' },
-              ].map((action, i) => (
-                <Link key={action.label} href={action.href}>
+              ].map((action, i) => {
+                const card = (
                   <motion.div
                     whileHover={{ y: -4, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -923,8 +947,20 @@ function FeedbackPageContent() {
                       action.gradient
                     )} />
                   </motion.div>
-                </Link>
-              ))}
+                )
+                if ('onClick' in action) {
+                  return (
+                    <button key={action.label} onClick={action.onClick} className="text-left">
+                      {card}
+                    </button>
+                  )
+                }
+                return (
+                  <Link key={action.label} href={action.href!}>
+                    {card}
+                  </Link>
+                )
+              })}
             </div>
           </motion.div>
 
@@ -945,6 +981,17 @@ function FeedbackPageContent() {
               <ArrowRight className="h-4 w-4 relative transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
           </motion.div>
+
+          {notification && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-6 right-6 z-50 rounded-xl border border-[#e8e7f0] bg-white px-5 py-3 shadow-lg"
+            >
+              <p className="text-sm font-medium text-[#0a0a0f]">{notification}</p>
+            </motion.div>
+          )}
 
           <div className="h-6" />
         </div>

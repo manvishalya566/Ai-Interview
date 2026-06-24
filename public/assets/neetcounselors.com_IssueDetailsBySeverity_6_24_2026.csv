@@ -1,0 +1,8 @@
+﻿"Issue","Type","Pages affected"
+"Http 400-499 errors ","Error","8"
+"Broken redirects ","Error","2"
+"Http 500-599 errors ","Error","1"
+"Blocked by robots.txt ","Error","1"
+"Title too long ","Warning","390"
+"More than one h1 tag ","Notice","40"
+"H1 tag missing ","Notice","7"

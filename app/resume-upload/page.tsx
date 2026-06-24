@@ -705,10 +705,9 @@ export default function ResumeUploadPage() {
                       <Bot className="h-10 w-10 text-white" />
                     </motion.div>
                     <h3 className="mb-2 text-headline text-[#0a0a0f]">Ready for Your AI Interview?</h3>
-                    <p className="mb-7 text-sm text-[#6b6a7a] max-w-lg mx-auto">
-                      Generate a personalized mock interview based on your resume. Our AI will create questions
-                      tailored to your skills, experience, and target roles.
-                    </p>
+<p className="mb-7 text-sm text-[#6b6a7a] max-w-xl mx-auto">
+  Generate a personalized mock interview based on your resume. Our AI will create questions tailored to your skills, experience, and target roles.
+</p>
                     {generateError && (
                       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 text-sm text-[#EF4444]">
                         {generateError}

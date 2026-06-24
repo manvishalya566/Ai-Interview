@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { FigmaButton } from '@/components/ui/figma-button'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/hooks/use-theme'
 
 interface NotificationItem {
   label: string
@@ -49,6 +50,7 @@ const defaultNotifications: NotificationItem[] = [
 
 export default function SettingsPage() {
   const { user } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [profile, setProfile] = useState({ name: '', email: '' })
@@ -295,26 +297,48 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-[#0a0a0f]">Theme</h2>
-                  <p className="text-sm text-[#6b6a7a]">This design system is fixed to light mode</p>
+                  <p className="text-sm text-[#6b6a7a]">Choose between light and dark mode</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 rounded-xl border-2 border-[#C084FC]/30 bg-gradient-to-r from-[#C084FC]/5 to-[#8B5CF6]/5 px-5 py-3 shadow-sm">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border-2 px-5 py-3 transition-all duration-300",
+                    theme === 'light'
+                      ? "border-[#C084FC]/30 bg-gradient-to-r from-[#C084FC]/5 to-[#8B5CF6]/5 shadow-sm"
+                      : "border-[#e8e7f0] bg-[#f0eeff] opacity-60 hover:opacity-90"
+                  )}
+                >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#F59E0B] to-[#F97316] shadow-sm">
                     <Sun className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-sm font-semibold text-[#0a0a0f]">Light</span>
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#22C55E] to-[#16A34A]">
-                    <CheckCircle className="h-3 w-3 text-white" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl border border-[#e8e7f0] bg-[#f0eeff] px-5 py-3 opacity-50">
+                  <span className={cn("text-sm font-semibold", theme === 'light' ? "text-[#0a0a0f]" : "text-[#6b6a7a]")}>Light</span>
+                  {theme === 'light' && (
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#22C55E] to-[#16A34A]">
+                      <CheckCircle className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border-2 px-5 py-3 transition-all duration-300",
+                    theme === 'dark'
+                      ? "border-[#C084FC]/30 bg-gradient-to-r from-[#C084FC]/5 to-[#8B5CF6]/5 shadow-sm"
+                      : "border-[#e8e7f0] bg-[#f0eeff] opacity-60 hover:opacity-90"
+                  )}
+                >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a0a0f]">
                     <Moon className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-[#6b6a7a]">Dark</span>
-                  <span className="rounded-full bg-[#e8e7f0] px-2 py-0.5 text-[10px] font-bold tracking-wider text-[#a0a0b0] uppercase">Soon</span>
-                </div>
+                  <span className={cn("text-sm font-semibold", theme === 'dark' ? "text-[#0a0a0f]" : "text-[#6b6a7a]")}>Dark</span>
+                  {theme === 'dark' && (
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#22C55E] to-[#16A34A]">
+                      <CheckCircle className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                </button>
               </div>
             </motion.div>
 

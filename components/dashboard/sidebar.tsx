@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -8,6 +9,8 @@ import {
   BarChart3, Settings, Brain, Sparkles, Crown, LogOut, X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,15 +21,13 @@ const navItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
-function NavItem({ href, label, icon: Icon, collapsed }: {
+const NavItem = memo(function NavItem({ href, label, icon: Icon, collapsed, isActive }: {
   href: string
   label: string
   icon: any
   collapsed?: boolean
+  isActive: boolean
 }) {
-  const pathname = usePathname()
-  const isActive = pathname === href
-
   return (
     <Link href={href}>
       <motion.div
@@ -64,19 +65,21 @@ function NavItem({ href, label, icon: Icon, collapsed }: {
       </motion.div>
     </Link>
   )
-}
+})
 
-export function DashboardSidebar({ user, collapsed, onToggle, mobileOpen, onMobileClose }: {
+export const DashboardSidebar = memo(function DashboardSidebar({ user, collapsed, mobileOpen, onMobileClose }: {
   user?: any
   collapsed?: boolean
   onToggle?: () => void
   mobileOpen?: boolean
   onMobileClose?: () => void
 }) {
-  const initial = user?.name?.charAt(0)?.toUpperCase() || 'U'
+  const { logout } = useAuth()
   const pathname = usePathname()
 
-  const sidebarContent = (
+  const initial = user?.name?.charAt(0)?.toUpperCase() || 'U'
+
+  const sidebarContent = useMemo(() => (
     <div className="flex h-full flex-col bg-white/80 backdrop-blur-xl border-r border-[#e8e7f0]">
       <div className={cn(
         'flex h-[72px] items-center border-b border-[#e8e7f0]',
@@ -112,9 +115,12 @@ export function DashboardSidebar({ user, collapsed, onToggle, mobileOpen, onMobi
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
         {navItems.map((item) => (
           <div key={item.href} onClick={mobileOpen ? onMobileClose : undefined}>
-            <NavItem {...item} collapsed={collapsed} />
+            <NavItem {...item} collapsed={collapsed} isActive={pathname === item.href} />
           </div>
         ))}
+        <div className="pt-2">
+          <ThemeToggle collapsed={collapsed} />
+        </div>
       </nav>
 
       <div className={cn(
@@ -151,11 +157,31 @@ export function DashboardSidebar({ user, collapsed, onToggle, mobileOpen, onMobi
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#FF4D9D] to-[#8B5CF6] text-sm font-bold text-white shadow-md">
               {initial}
             </div>
+            <button
+              onClick={logout}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6b6a7a] hover:bg-[#fee2e2] hover:text-[#EF4444] transition-all"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {!collapsed && (
+          <div className="border-t border-[#e8e7f0] px-3 py-2">
+            <button
+              onClick={logout}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#6b6a7a] transition-all hover:bg-[#fee2e2] hover:text-[#EF4444]"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f0eeff] transition-colors group-hover:bg-[#fecaca]">
+                <LogOut className="h-4 w-4" />
+              </div>
+              <span>Logout</span>
+            </button>
           </div>
         )}
       </div>
     </div>
-  )
+  ), [collapsed, mobileOpen, onMobileClose, initial, user?.name, user?.email, pathname, logout])
 
   return (
     <>
@@ -190,4 +216,4 @@ export function DashboardSidebar({ user, collapsed, onToggle, mobileOpen, onMobi
       )}
     </>
   )
-}
+})
