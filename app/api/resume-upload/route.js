@@ -5,19 +5,7 @@ import { execSync } from "child_process";
 import { writeFileSync, unlinkSync, mkdtempSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-let workerPathSet = false;
-
-async function ensureWorkerPath() {
-  if (workerPathSet) return;
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  if (!pdfjs.GlobalWorkerOptions.workerSrc || pdfjs.GlobalWorkerOptions.workerSrc === "./pdf.worker.mjs") {
-    pdfjs.GlobalWorkerOptions.workerSrc = import.meta.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
-    workerPathSet = true;
-  }
-}
-
 async function extractTextWithPdfjs(uint8array) {
-  await ensureWorkerPath();
   const parser = new PDFParse({ data: Buffer.from(uint8array) });
   const result = await parser.getText();
   await parser.destroy();
@@ -26,7 +14,6 @@ async function extractTextWithPdfjs(uint8array) {
 
 async function renderPageToImage(uint8array, pageIndex) {
   try {
-    await ensureWorkerPath();
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const { createCanvas } = await import("canvas");
     const loadingTask = pdfjs.getDocument({ data: new Uint8Array(uint8array) });
@@ -66,7 +53,6 @@ async function renderPageToImage(uint8array, pageIndex) {
 }
 
 async function extractTextWithOcr(uint8array) {
-  await ensureWorkerPath();
   const parser = new PDFParse({ data: Buffer.from(uint8array) });
   const info = await parser.getInfo();
   const totalPages = info.total;
