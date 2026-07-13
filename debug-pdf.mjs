@@ -1,4 +1,4 @@
-import pdf from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,11 +8,13 @@ const filePath = path.join(__dirname, 'test-resume.pdf');
 const buffer = fs.readFileSync(filePath);
 
 try {
-  const data = await pdf(buffer);
-  console.log("Document loaded, pages:", data.numpages);
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  console.log("Document loaded, pages:", result.total);
   console.log("Full text:");
-  console.log(data.text);
+  console.log(result.text);
   console.log("SUCCESS: Text extracted");
+  await parser.destroy();
 } catch (err) {
   console.error("FAILED:", err.message);
   console.error("Stack:", err.stack?.substring(0, 500));
