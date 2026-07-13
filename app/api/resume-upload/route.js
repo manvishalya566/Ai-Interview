@@ -1,82 +1,40 @@
-import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdf from "pdf-parse";
 import { createWorker } from "tesseract.js";
-import { createCanvas } from "canvas";
 import { execSync } from "child_process";
 import { writeFileSync, unlinkSync, mkdtempSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
-pdfjs.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
-
 async function extractTextWithPdfjs(uint8array) {
-  const loadingTask = pdfjs.getDocument({ data: uint8array });
-  const doc = await loadingTask.promise;
-  const pages = [];
-
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    const text = content.items.map((item) => item.str).join(" ");
-    pages.push(text);
-    page.cleanup();
-  }
-
-  await doc.destroy();
-  return { text: pages.join("\n\n"), pages: pages, pageCount: doc.numPages };
+  const data = await pdf(Buffer.from(uint8array));
+  return { text: data.text, pages: [], pageCount: data.numpages };
 }
 
 async function renderPageToImage(uint8array, pageIndex) {
-  // Try pdfjs + node-canvas rendering first
+  const tmpDir = mkdtempSync(join(tmpdir(), "resume-ocr-"));
+  const pdfPath = join(tmpDir, "input.pdf");
+  const pngPath = join(tmpDir, `page-${pageIndex}.png`);
+
   try {
-    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(uint8array) });
-    const doc = await loadingTask.promise;
-    const page = await doc.getPage(pageIndex);
-
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = createCanvas(viewport.width, viewport.height);
-    const ctx = canvas.getContext("2d");
-
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    const imageBuffer = canvas.toBuffer("image/png");
-    page.cleanup();
-    await doc.destroy();
-
-    return new Uint8Array(imageBuffer.buffer, imageBuffer.byteOffset, imageBuffer.byteLength);
-  } catch (renderErr) {
-    console.log(`[resume-upload] pdfjs render failed for page ${pageIndex}:`, renderErr.message);
-
-    // Fallback: use sips (macOS) to convert PDF page to PNG
-    const tmpDir = mkdtempSync(join(tmpdir(), "resume-ocr-"));
-    const pdfPath = join(tmpDir, "input.pdf");
-    const pngPath = join(tmpDir, `page-${pageIndex}.png`);
-
-    try {
-      writeFileSync(pdfPath, Buffer.from(uint8array));
-      execSync(`sips -s format png "${pdfPath}" --out "${pngPath}"`, {
-        timeout: 30000,
-        stdio: "ignore",
-      });
-      const pngBuf = readFileSync(pngPath);
-      return new Uint8Array(pngBuf.buffer, pngBuf.byteOffset, pngBuf.byteLength);
-    } catch (sipsErr) {
-      throw new Error(
-        `PDF page rendering failed: ${renderErr.message}. ${sipsErr.message}`
-      );
-    } finally {
-      try { unlinkSync(pdfPath); } catch {}
-      try { unlinkSync(pngPath); } catch {}
-      try { unlinkSync(tmpDir); } catch {}
-    }
+    writeFileSync(pdfPath, Buffer.from(uint8array));
+    execSync(`sips -s format png "${pdfPath}" --out "${pngPath}"`, {
+      timeout: 30000,
+      stdio: "ignore",
+    });
+    const pngBuf = readFileSync(pngPath);
+    return new Uint8Array(pngBuf.buffer, pngBuf.byteOffset, pngBuf.byteLength);
+  } catch (sipsErr) {
+    throw new Error(`PDF page rendering failed: ${sipsErr.message}`);
+  } finally {
+    try { unlinkSync(pdfPath); } catch {}
+    try { unlinkSync(pngPath); } catch {}
+    try { unlinkSync(tmpDir); } catch {}
   }
 }
 
 async function extractTextWithOcr(uint8array) {
-  const dataCopy = new Uint8Array(uint8array);
-  const loadingTask = pdfjs.getDocument({ data: dataCopy });
-  const doc = await loadingTask.promise;
-  const totalPages = doc.numPages;
-  await doc.destroy();
+  const pdfData = await pdf(Buffer.from(uint8array));
+  const totalPages = pdfData.numpages;
 
   const worker = await createWorker("eng", 1, { logger: () => {} });
 
@@ -124,8 +82,6 @@ export async function POST(req) {
 
     const bytes = await file.arrayBuffer();
     const uint8array = new Uint8Array(bytes);
-    // Keep a copy because pdfjs detaches the ArrayBuffer internally
-    const uint8arrayCopy = new Uint8Array(uint8array);
 
     let result;
     let method = "text";
@@ -135,13 +91,13 @@ export async function POST(req) {
       if (!result.text || result.text.trim().length < 50) {
         console.log("[resume-upload] Text extraction returned too little text, falling back to OCR");
         method = "ocr";
-        result = await extractTextWithOcr(uint8arrayCopy);
+        result = await extractTextWithOcr(uint8array);
       }
     } catch (textErr) {
       console.log("[resume-upload] Text extraction failed:", textErr.message, "- falling back to OCR");
       method = "ocr";
       try {
-        result = await extractTextWithOcr(uint8arrayCopy);
+        result = await extractTextWithOcr(uint8array);
       } catch (ocrErr) {
         console.error("[resume-upload] OCR also failed:", ocrErr.message);
         return Response.json(

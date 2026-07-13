@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pdfjs-dist", "canvas", "tesseract.js"],
+  serverExternalPackages: ["canvas", "tesseract.js"],
   async headers() {
     return [
       {
