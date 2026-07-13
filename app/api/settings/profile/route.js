@@ -10,17 +10,10 @@ export async function PUT(req) {
     }
 
     await connectDB();
-    const { name, email } = await req.json();
+    const { name } = await req.json();
 
     const updateData = {};
     if (name) updateData.name = name;
-    if (email) {
-      const existing = await User.findOne({ email, _id: { $ne: authResult.userId } });
-      if (existing) {
-        return Response.json({ success: false, message: "Email already in use" }, { status: 400 });
-      }
-      updateData.email = email;
-    }
 
     const user = await User.findByIdAndUpdate(authResult.userId, updateData, { new: true }).select("-password").lean();
 

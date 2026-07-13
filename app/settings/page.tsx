@@ -103,7 +103,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile),
+        body: JSON.stringify({ name: profile.name }),
       })
       const data = await res.json()
       if (data.success) {
@@ -218,10 +218,14 @@ export default function SettingsPage() {
                   <input
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full rounded-xl border border-[#e8e7f0] bg-[#fcfcff] px-4 py-3 text-sm text-[#0a0a0f] placeholder:text-[#a0a0b0] transition-all duration-200 focus:border-[#C084FC]/50 focus:bg-white focus:shadow-md focus:shadow-[#C084FC]/10 focus:outline-none"
+                    disabled
+                    className="w-full rounded-xl border border-[#e8e7f0] bg-[#f0eeff] px-4 py-3 text-sm text-[#6b6a7a] placeholder:text-[#a0a0b0] cursor-not-allowed select-all transition-all duration-200 focus:outline-none"
                     placeholder="john@example.com"
                   />
+                  <p className="mt-1.5 text-xs text-[#a0a0b0] flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Email address cannot be changed
+                  </p>
                 </div>
               </div>
               <div className="mt-6 flex items-center gap-4">
