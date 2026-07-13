@@ -1,3 +1,4 @@
+import "@/lib/pdf-polyfill";
 import { PDFParse } from "pdf-parse";
 import { createWorker } from "tesseract.js";
 import { execSync } from "child_process";
@@ -14,22 +15,24 @@ async function extractTextWithPdfjs(uint8array) {
 
 async function renderPageToImage(uint8array, pageIndex) {
   try {
-    const parser = new PDFParse({ data: Buffer.from(uint8array) });
-    const screenshot = await parser.getScreenshot({
-      first: pageIndex,
-      last: pageIndex,
-      scale: 2.0,
-      imageBuffer: true,
-      imageDataUrl: false,
-    });
-    await parser.destroy();
-    return screenshot.pages[0].data;
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const { createCanvas } = await import("canvas");
+    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(uint8array) });
+    const doc = await loadingTask.promise;
+    const page = await doc.getPage(pageIndex);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = createCanvas(viewport.width, viewport.height);
+    const ctx = canvas.getContext("2d");
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const imageBuffer = canvas.toBuffer("image/png");
+    page.cleanup();
+    await doc.destroy();
+    return new Uint8Array(imageBuffer.buffer, imageBuffer.byteOffset, imageBuffer.byteLength);
   } catch (renderErr) {
     console.log(`[resume-upload] pdfjs render failed for page ${pageIndex}:`, renderErr.message);
     const tmpDir = mkdtempSync(join(tmpdir(), "resume-ocr-"));
     const pdfPath = join(tmpDir, "input.pdf");
     const pngPath = join(tmpDir, `page-${pageIndex}.png`);
-
     try {
       writeFileSync(pdfPath, Buffer.from(uint8array));
       execSync(`sips -s format png "${pdfPath}" --out "${pngPath}"`, {
