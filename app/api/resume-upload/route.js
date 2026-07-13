@@ -1,40 +1,66 @@
-import pdf from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import { createWorker } from "tesseract.js";
+import { createCanvas } from "canvas";
 import { execSync } from "child_process";
 import { writeFileSync, unlinkSync, mkdtempSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
 async function extractTextWithPdfjs(uint8array) {
-  const data = await pdf(Buffer.from(uint8array));
-  return { text: data.text, pages: [], pageCount: data.numpages };
+  const parser = new PDFParse({ data: Buffer.from(uint8array) });
+  const result = await parser.getText();
+  await parser.destroy();
+  return { text: result.text, pages: result.pages, pageCount: result.total };
 }
 
 async function renderPageToImage(uint8array, pageIndex) {
-  const tmpDir = mkdtempSync(join(tmpdir(), "resume-ocr-"));
-  const pdfPath = join(tmpDir, "input.pdf");
-  const pngPath = join(tmpDir, `page-${pageIndex}.png`);
-
   try {
-    writeFileSync(pdfPath, Buffer.from(uint8array));
-    execSync(`sips -s format png "${pdfPath}" --out "${pngPath}"`, {
-      timeout: 30000,
-      stdio: "ignore",
-    });
-    const pngBuf = readFileSync(pngPath);
-    return new Uint8Array(pngBuf.buffer, pngBuf.byteOffset, pngBuf.byteLength);
-  } catch (sipsErr) {
-    throw new Error(`PDF page rendering failed: ${sipsErr.message}`);
-  } finally {
-    try { unlinkSync(pdfPath); } catch {}
-    try { unlinkSync(pngPath); } catch {}
-    try { unlinkSync(tmpDir); } catch {}
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(uint8array) });
+    const doc = await loadingTask.promise;
+    const page = await doc.getPage(pageIndex);
+
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = createCanvas(viewport.width, viewport.height);
+    const ctx = canvas.getContext("2d");
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const imageBuffer = canvas.toBuffer("image/png");
+    page.cleanup();
+    await doc.destroy();
+    return new Uint8Array(imageBuffer.buffer, imageBuffer.byteOffset, imageBuffer.byteLength);
+  } catch (renderErr) {
+    console.log(`[resume-upload] pdfjs render failed for page ${pageIndex}:`, renderErr.message);
+    const tmpDir = mkdtempSync(join(tmpdir(), "resume-ocr-"));
+    const pdfPath = join(tmpDir, "input.pdf");
+    const pngPath = join(tmpDir, `page-${pageIndex}.png`);
+
+    try {
+      writeFileSync(pdfPath, Buffer.from(uint8array));
+      execSync(`sips -s format png "${pdfPath}" --out "${pngPath}"`, {
+        timeout: 30000,
+        stdio: "ignore",
+      });
+      const pngBuf = readFileSync(pngPath);
+      return new Uint8Array(pngBuf.buffer, pngBuf.byteOffset, pngBuf.byteLength);
+    } catch (sipsErr) {
+      throw new Error(
+        `PDF page rendering failed: ${renderErr.message}. ${sipsErr.message}`
+      );
+    } finally {
+      try { unlinkSync(pdfPath); } catch {}
+      try { unlinkSync(pngPath); } catch {}
+      try { unlinkSync(tmpDir); } catch {}
+    }
   }
 }
 
 async function extractTextWithOcr(uint8array) {
-  const pdfData = await pdf(Buffer.from(uint8array));
-  const totalPages = pdfData.numpages;
+  const parser = new PDFParse({ data: Buffer.from(uint8array) });
+  const info = await parser.getInfo();
+  const totalPages = info.total;
+  await parser.destroy();
 
   const worker = await createWorker("eng", 1, { logger: () => {} });
 

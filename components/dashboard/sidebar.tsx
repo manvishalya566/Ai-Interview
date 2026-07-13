@@ -73,7 +73,7 @@ export const DashboardSidebar = memo(function DashboardSidebar({ collapsed, mobi
   mobileOpen?: boolean
   onMobileClose?: () => void
 }) {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuth() as any
   const pathname = usePathname()
 
   const initial = user?.name?.charAt(0)?.toUpperCase() || 'U'
