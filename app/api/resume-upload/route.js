@@ -5,18 +5,13 @@ import { execSync } from "child_process";
 import { writeFileSync, unlinkSync, mkdtempSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { pathToFileURL } from "url";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
 let workerPathSet = false;
 
 async function ensureWorkerPath() {
   if (workerPathSet) return;
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   if (!pdfjs.GlobalWorkerOptions.workerSrc || pdfjs.GlobalWorkerOptions.workerSrc === "./pdf.worker.mjs") {
-    const resolvedPath = require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
-    pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(resolvedPath).href;
+    pdfjs.GlobalWorkerOptions.workerSrc = import.meta.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
     workerPathSet = true;
   }
 }
