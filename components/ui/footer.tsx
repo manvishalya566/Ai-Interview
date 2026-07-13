@@ -49,12 +49,12 @@ function Footer({ className, ...props }: FooterProps) {
             </p>
             <div className="mt-8 flex gap-3">
               {[
-                { icon: Globe, href: "#" },
-                { icon: MessageSquare, href: "#" },
-                { icon: Users, href: "#" },
-              ].map(({ icon: Icon, href }) => (
+                { icon: Globe, href: "#", label: "Website" },
+                { icon: MessageSquare, href: "#", label: "Chat" },
+                { icon: Users, href: "#", label: "Community" },
+              ].map(({ icon: Icon, href, label }) => (
                 <a
-                  key={href}
+                  key={label}
                   href={href}
                   className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/40 hover:bg-gradient-to-br hover:from-[#FF4D9D] hover:to-[#8B5CF6] hover:text-white transition-all duration-300"
                 >

@@ -223,10 +223,10 @@ export default function DashboardPage() {
 
   const { stats, weeklyData, skillData, recentInterviews, activityData } = dashboardData || {
     stats: { totalInterviews: 0, averageScore: 0, skillsAssessed: 0, streakDays: 0 },
-    weeklyData: [],
-    skillData: [],
-    recentInterviews: [],
-    activityData: [],
+    weeklyData: [] as any[],
+    skillData: [] as { label: string; value: number }[],
+    recentInterviews: [] as any[],
+    activityData: [] as any[],
   }
 
   return (
@@ -296,9 +296,18 @@ export default function DashboardPage() {
 
             {/* AI Insights + Achievements */}
             <div className="grid gap-6 lg:grid-cols-3">
-              <AIInsights />
+              <AIInsights
+                data={skillData.length >= 2
+                  ? {
+                      strongest: { label: skillData.reduce((a: any, b: any) => (a.value > b.value ? a : b)).label, value: Math.max(...skillData.map((s: any) => s.value)) },
+                      weakest: { label: skillData.reduce((a: any, b: any) => (a.value < b.value ? a : b)).label, value: Math.min(...skillData.map((s: any) => s.value)) },
+                      suggested: `Focus on ${skillData.reduce((a: any, b: any) => (a.value < b.value ? a : b)).label} to improve your overall score.`,
+                    }
+                  : undefined
+                }
+              />
               <div className="lg:col-span-2">
-                <Achievements />
+                <Achievements totalInterviews={stats.totalInterviews} streakDays={stats.streakDays} averageScore={stats.averageScore} />
               </div>
             </div>
 

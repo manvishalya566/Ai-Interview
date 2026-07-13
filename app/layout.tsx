@@ -32,17 +32,24 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            try {
-              var t = localStorage.getItem('prepgenius-theme');
-              if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme:dark)').matches)) document.documentElement.classList.add('dark');
-            } catch(e) {}
-          `,
-        }} />
-        <script
+      <head />
+      <body className="min-h-full flex flex-col">
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var t = localStorage.getItem('prepgenius-theme');
+                if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme:dark)').matches)) document.documentElement.classList.add('dark');
+              } catch(e) {}
+            `,
+          }}
+        />
+        <Script
+          id="three-importmap"
           type="importmap"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               imports: {
@@ -53,13 +60,6 @@ export default function RootLayout({
             })
           }}
         />
-         {/* <Script
-          src="//unpkg.com/react-scan/dist/auto.global.js"
-          crossOrigin="anonymous"
-          strategy="beforeInteractive"
-        /> */}
-      </head>
-      <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>

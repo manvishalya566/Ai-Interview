@@ -158,22 +158,30 @@ export default function HistoryPage() {
     _id: i._id,
   }))
 
-  const skillsBreakdown = [
-    { name: 'DSA', score: Math.min(averageScore + 10, 100), improvement: '+12%', icon: Code },
-    { name: 'React', score: Math.min(averageScore + 7, 100), improvement: '+8%', icon: Layers },
-    { name: 'Backend', score: Math.max(averageScore - 3, 0), improvement: '+5%', icon: Server },
-    { name: 'DBMS', score: Math.max(averageScore - 8, 0), improvement: '+3%', icon: Database },
-    { name: 'OOPs', score: Math.min(averageScore + 5, 100), improvement: '+10%', icon: Layers },
-    { name: 'HR Questions', score: Math.max(averageScore - 12, 0), improvement: '-2%', icon: UsersIcon },
-    { name: 'Communication', score: Math.max(averageScore - 6, 0), improvement: '+6%', icon: MessageCircle },
-  ]
+  const skillMap: Record<string, { total: number; count: number }> = {}
+  interviews.forEach((i: any) => {
+    (i.skillBreakdown || []).forEach((s: any) => {
+      if (!skillMap[s.name]) skillMap[s.name] = { total: 0, count: 0 }
+      skillMap[s.name].total += s.score || 0
+      skillMap[s.name].count += 1
+    })
+  })
+  const skillsBreakdown = Object.entries(skillMap).map(([name, data]) => ({
+    name,
+    score: Math.round(data.total / data.count),
+    improvement: '--',
+    icon: Code,
+  }))
 
-  const aiRecommendations = [
-    { area: 'System Design', weakness: 'Low confidence in distributed systems', action: 'Practice with 5+ case studies', priority: 'High' },
-    { area: 'Behavioral', weakness: 'STAR method needs refinement', action: 'Record 10 STAR practice answers', priority: 'High' },
-    { area: 'DBMS', weakness: 'Query optimization weak', action: 'Complete SQL advanced course', priority: 'Medium' },
-    { area: 'Time Management', weakness: 'Running over time on coding', action: 'Use timer for all practices', priority: 'Medium' },
-  ]
+  const weakSkills = skillsBreakdown.filter((s) => s.score < 75).map((s) => s.name)
+  const aiRecommendations = weakSkills.length > 0
+    ? weakSkills.slice(0, 4).map((area) => ({
+        area,
+        weakness: `Score of ${skillsBreakdown.find((s) => s.name === area)?.score || 0}% needs improvement`,
+        action: `Focus on ${area} with targeted practice`,
+        priority: 'Medium',
+      }))
+    : []
 
   const filters = ['All', 'Technical', 'Behavioral', 'System Design', 'Mixed']
   const sorts = ['Newest', 'Oldest', 'Highest Score', 'Lowest Score']

@@ -85,10 +85,10 @@ export default function AnalyticsPage() {
   } = analyticsData || {}
 
   const statCards: StatCard[] = [
-    { label: 'Total Interviews', value: totalInterviews, suffix: '', icon: Briefcase, change: `+${Math.min(totalInterviews, 5)}`, gradient: 'from-[#FF4D9D] to-[#FF6BCB]' },
-    { label: 'Average Score', value: averageScore, suffix: '%', icon: Target, change: `+${Math.min(Math.round(averageScore * 0.05), 10)}%`, gradient: 'from-[#C084FC] to-[#8B5CF6]' },
-    { label: 'Current Streak', value: currentStreak, suffix: ' days', icon: Activity, change: '+2', gradient: 'from-[#60A5FA] to-[#3B82F6]' },
-    { label: 'Skills Mastered', value: skillsMastered, suffix: '', icon: Star, change: '+3', gradient: 'from-[#34D399] to-[#22C55E]' },
+    { label: 'Total Interviews', value: totalInterviews, suffix: '', icon: Briefcase, change: totalInterviews > 0 ? `+${totalInterviews}` : 'New', gradient: 'from-[#FF4D9D] to-[#FF6BCB]' },
+    { label: 'Average Score', value: averageScore, suffix: '%', icon: Target, change: averageScore > 0 ? `${averageScore}%` : '--', gradient: 'from-[#C084FC] to-[#8B5CF6]' },
+    { label: 'Current Streak', value: currentStreak, suffix: ' days', icon: Activity, change: currentStreak > 0 ? `+${currentStreak}` : 'New', gradient: 'from-[#60A5FA] to-[#3B82F6]' },
+    { label: 'Skills Mastered', value: skillsMastered, suffix: '', icon: Star, change: skillsMastered > 0 ? `+${skillsMastered}` : 'New', gradient: 'from-[#34D399] to-[#22C55E]' },
   ]
 
   if (loading || authLoading) {
@@ -151,8 +151,13 @@ export default function AnalyticsPage() {
                       <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm', stat.gradient)}>
                         <stat.icon className="h-5 w-5 text-white" />
                       </div>
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-[#22C55E]/10 px-2 py-0.5 text-xs font-semibold text-[#22C55E]">
-                        <TrendingUp className="h-3 w-3" />
+                      <span className={cn(
+                        'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
+                        stat.change === 'New' || stat.change === '--'
+                          ? 'bg-[#f0eeff] text-[#a0a0b0]'
+                          : 'bg-[#22C55E]/10 text-[#22C55E]'
+                      )}>
+                        {(stat.change !== 'New' && stat.change !== '--') && <TrendingUp className="h-3 w-3" />}
                         {stat.change}
                       </span>
                     </div>

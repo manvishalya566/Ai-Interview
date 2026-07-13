@@ -12,30 +12,30 @@ interface Achievement {
   unlocked: boolean
 }
 
-const achievements: Achievement[] = [
+const getAchievements = (totalInterviews: number, streakDays: number, averageScore: number): Achievement[] => [
   {
     icon: Trophy,
-    label: 'Top Performer',
-    description: 'Rank in the top 10%',
+    label: 'First Interview',
+    description: 'Complete your first mock interview',
     gradient: 'from-[#F59E0B] to-[#F97316]',
     glow: 'rgba(245, 158, 11, 0.3)',
-    unlocked: true,
+    unlocked: totalInterviews >= 1,
   },
   {
     icon: Flame,
-    label: '14 Day Streak',
-    description: 'Practice for 14 days straight',
+    label: 'On a Roll',
+    description: 'Complete 3 interviews',
     gradient: 'from-[#EF4444] to-[#F97316]',
     glow: 'rgba(239, 68, 68, 0.3)',
-    unlocked: true,
+    unlocked: totalInterviews >= 3,
   },
   {
     icon: Zap,
-    label: 'Fast Learner',
-    description: 'Improve by 20% in a week',
+    label: 'Dedicated',
+    description: 'Complete 5 interviews',
     gradient: 'from-[#8B5CF6] to-[#C084FC]',
     glow: 'rgba(139, 92, 246, 0.3)',
-    unlocked: true,
+    unlocked: totalInterviews >= 5,
   },
   {
     icon: Target,
@@ -43,7 +43,7 @@ const achievements: Achievement[] = [
     description: 'Score 80%+ on 5 interviews',
     gradient: 'from-[#22C55E] to-[#34D399]',
     glow: 'rgba(34, 197, 94, 0.3)',
-    unlocked: false,
+    unlocked: totalInterviews >= 5 && averageScore >= 80,
   },
 ]
 
@@ -99,7 +99,8 @@ function AchievementBadge({ badge, index }: { badge: Achievement; index: number 
   )
 }
 
-export function Achievements() {
+export function Achievements({ totalInterviews = 0, streakDays = 0, averageScore = 0 }: { totalInterviews?: number; streakDays?: number; averageScore?: number }) {
+  const achievements = getAchievements(totalInterviews, streakDays, averageScore)
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

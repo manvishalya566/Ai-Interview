@@ -9,14 +9,28 @@ interface InsightData {
   suggested: string
 }
 
-const defaultInsights: InsightData = {
-  strongest: { label: 'Problem Solving', value: 90 },
-  weakest: { label: 'System Design', value: 65 },
-  suggested: 'Focus on System Design — it has the biggest impact on senior-level interviews.',
-}
-
 export function AIInsights({ data }: { data?: InsightData }) {
-  const insights = data || defaultInsights
+  if (!data) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="rounded-2xl border border-[#e8e7f0] bg-white p-6 shadow-sm"
+      >
+        <div className="flex items-center gap-2 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#C084FC] to-[#8B5CF6] shadow-sm">
+            <Sparkles className="h-3.5 w-3.5 text-white" />
+          </div>
+          <h2 className="text-lg font-bold tracking-tight text-[#0a0a0f]">AI Insights</h2>
+        </div>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <p className="text-sm font-medium text-[#6b6a7a]">No insights yet</p>
+          <p className="text-xs text-[#a0a0b0] mt-1">Complete an interview to receive personalized insights.</p>
+        </div>
+      </motion.div>
+    )
+  }
 
   return (
     <motion.div
@@ -41,8 +55,8 @@ export function AIInsights({ data }: { data?: InsightData }) {
             </div>
             <span className="text-xs font-semibold uppercase tracking-wider text-[#22C55E]">Strongest</span>
           </div>
-          <p className="text-sm font-bold text-[#0a0a0f]">{insights.strongest.label}</p>
-          <p className="text-xs text-[#6b6a7a] mt-0.5">{insights.strongest.value}% proficiency</p>
+          <p className="text-sm font-bold text-[#0a0a0f]">{data.strongest.label}</p>
+          <p className="text-xs text-[#6b6a7a] mt-0.5">{data.strongest.value}% proficiency</p>
         </div>
 
         {/* Weakest */}
@@ -53,8 +67,8 @@ export function AIInsights({ data }: { data?: InsightData }) {
             </div>
             <span className="text-xs font-semibold uppercase tracking-wider text-[#F59E0B]">Needs Work</span>
           </div>
-          <p className="text-sm font-bold text-[#0a0a0f]">{insights.weakest.label}</p>
-          <p className="text-xs text-[#6b6a7a] mt-0.5">{insights.weakest.value}% proficiency</p>
+          <p className="text-sm font-bold text-[#0a0a0f]">{data.weakest.label}</p>
+          <p className="text-xs text-[#6b6a7a] mt-0.5">{data.weakest.value}% proficiency</p>
         </div>
 
         {/* Suggested */}
@@ -67,7 +81,7 @@ export function AIInsights({ data }: { data?: InsightData }) {
           </div>
           <div className="flex items-start gap-2">
             <Lightbulb className="h-3.5 w-3.5 text-[#F59E0B] mt-0.5 shrink-0" />
-            <p className="text-sm text-[#0a0a0f]">{insights.suggested}</p>
+            <p className="text-sm text-[#0a0a0f]">{data.suggested}</p>
           </div>
         </div>
       </div>

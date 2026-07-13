@@ -9,14 +9,6 @@ interface SkillData {
   value: number
 }
 
-const defaultSkills: SkillData[] = [
-  { label: 'React', value: 85 },
-  { label: 'JavaScript', value: 78 },
-  { label: 'TypeScript', value: 72 },
-  { label: 'System Design', value: 65 },
-  { label: 'Problem Solving', value: 90 },
-]
-
 const skillIcons: Record<string, any> = {
   React: Code2,
   JavaScript: FileJson,
@@ -78,7 +70,7 @@ function SkillBar({ skill, index }: { skill: SkillData; index: number }) {
 }
 
 export function DetailedSkills({ skillData }: { skillData?: SkillData[] }) {
-  const data = skillData && skillData.length > 0 ? skillData.slice(0, 5) : defaultSkills
+  const data = skillData && skillData.length > 0 ? skillData.slice(0, 5) : []
 
   return (
     <motion.div
@@ -92,11 +84,18 @@ export function DetailedSkills({ skillData }: { skillData?: SkillData[] }) {
         <p className="mt-0.5 text-sm text-[#6b6a7a]">Performance by category</p>
       </div>
 
-      <div className="space-y-4">
-        {data.map((skill, i) => (
-          <SkillBar key={skill.label} skill={skill} index={i} />
-        ))}
-      </div>
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <p className="text-sm font-medium text-[#6b6a7a]">No skill data available</p>
+          <p className="text-xs text-[#a0a0b0] mt-1">Complete an interview to see your detailed skills breakdown.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {data.map((skill, i) => (
+            <SkillBar key={skill.label} skill={skill} index={i} />
+          ))}
+        </div>
+      )}
     </motion.div>
   )
 }

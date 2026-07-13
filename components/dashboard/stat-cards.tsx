@@ -54,9 +54,9 @@ export function StatCards({ stats }: { stats: any }) {
   const cards: StatCardData[] = [
     {
       label: 'Total Interviews',
-      value: stats.totalInterviews || 24,
-      change: '+12%',
-      changeUp: true,
+      value: stats.totalInterviews ?? 0,
+      change: stats.totalInterviews > 0 ? `+${stats.totalInterviews}` : 'New',
+      changeUp: stats.totalInterviews > 0,
       icon: Briefcase,
       gradient: 'from-[#FF4D9D] to-[#FF6BCB]',
       gradientFrom: gradients.pink.from,
@@ -64,10 +64,10 @@ export function StatCards({ stats }: { stats: any }) {
     },
     {
       label: 'Average Score',
-      value: stats.averageScore || 84,
+      value: stats.averageScore ?? 0,
       suffix: '%',
-      change: '+8%',
-      changeUp: true,
+      change: stats.averageScore > 0 ? `${stats.averageScore}%` : '--',
+      changeUp: stats.averageScore > 0,
       icon: Target,
       gradient: 'from-[#C084FC] to-[#8B5CF6]',
       gradientFrom: gradients.purple.from,
@@ -75,9 +75,9 @@ export function StatCards({ stats }: { stats: any }) {
     },
     {
       label: 'Skills Assessed',
-      value: stats.skillsAssessed || 18,
-      change: '+4',
-      changeUp: true,
+      value: stats.skillsAssessed ?? 0,
+      change: stats.skillsAssessed > 0 ? `+${stats.skillsAssessed}` : 'New',
+      changeUp: stats.skillsAssessed > 0,
       icon: Award,
       gradient: 'from-[#60A5FA] to-[#3B82F6]',
       gradientFrom: gradients.blue.from,
@@ -85,9 +85,9 @@ export function StatCards({ stats }: { stats: any }) {
     },
     {
       label: 'Streak Days',
-      value: stats.streakDays || 14,
-      change: '+5',
-      changeUp: true,
+      value: stats.streakDays ?? 0,
+      change: stats.streakDays > 0 ? `+${stats.streakDays}` : 'New',
+      changeUp: stats.streakDays > 0,
       icon: Zap,
       gradient: 'from-[#34D399] to-[#22C55E]',
       gradientFrom: gradients.green.from,
@@ -125,12 +125,14 @@ export function StatCards({ stats }: { stats: any }) {
                   'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
                   card.changeUp
                     ? 'bg-[#22C55E]/10 text-[#22C55E]'
-                    : 'bg-[#EF4444]/10 text-[#EF4444]'
+                    : 'bg-[#f0eeff] text-[#a0a0b0]'
                 )}>
-                  <TrendingUp className="h-3 w-3" />
+                  {card.changeUp && <TrendingUp className="h-3 w-3" />}
                   {card.change}
                 </div>
-                <span className="text-[11px] text-[#a0a0b0]">vs last week</span>
+                {card.changeUp && card.label === 'Total Interviews' && (
+                  <span className="text-[11px] text-[#a0a0b0]">total</span>
+                )}
               </div>
             </div>
 

@@ -110,12 +110,12 @@ export function AICoach({ userName }: { userName?: string }) {
             <Sparkles className="h-3 w-3 text-[#F59E0B]" />
           </div>
           <p className="text-sm leading-relaxed text-[#0a0a0f]">
-            You&apos;re improving faster than <span className="font-bold text-[#8B5CF6]">78%</span> of candidates this week{' '}
+            Practice daily to build confidence and ace your interviews{' '}
             <span className="inline-block">
               <PartyPopper className="h-4 w-4 text-[#F59E0B] inline" />
             </span>
           </p>
-          <p className="text-xs text-[#6b6a7a]">Keep up the momentum, {userName || 'champion'}!</p>
+          <p className="text-xs text-[#6b6a7a]">Ready to get started, {userName || 'champion'}?</p>
         </div>
 
         <motion.button

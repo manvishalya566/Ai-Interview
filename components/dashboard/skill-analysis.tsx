@@ -8,12 +8,6 @@ interface SkillData {
   value: number
 }
 
-const defaultSkills: SkillData[] = [
-  { label: 'React Hooks', value: 82 },
-  { label: 'Technical Comm.', value: 74 },
-  { label: 'Problem Solving', value: 88 },
-]
-
 function CircularRing({ value, label, index }: { value: number; label: string; index: number }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true })
@@ -94,7 +88,7 @@ function CircularRing({ value, label, index }: { value: number; label: string; i
 }
 
 export function SkillAnalysis({ skillData }: { skillData?: SkillData[] }) {
-  const data = skillData && skillData.length > 0 ? skillData.slice(0, 3) : defaultSkills
+  const data = skillData && skillData.length > 0 ? skillData.slice(0, 3) : []
 
   return (
     <motion.div
@@ -108,11 +102,18 @@ export function SkillAnalysis({ skillData }: { skillData?: SkillData[] }) {
         <p className="mt-0.5 text-sm text-[#6b6a7a]">Your skill breakdown</p>
       </div>
 
-      <div className="flex flex-col items-center gap-5">
-        {data.map((skill, i) => (
-          <CircularRing key={skill.label} value={skill.value} label={skill.label} index={i} />
-        ))}
-      </div>
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <p className="text-sm font-medium text-[#6b6a7a]">No skill data available</p>
+          <p className="text-xs text-[#a0a0b0] mt-1">Complete an interview to see your skill analysis.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-5">
+          {data.map((skill, i) => (
+            <CircularRing key={skill.label} value={skill.value} label={skill.label} index={i} />
+          ))}
+        </div>
+      )}
     </motion.div>
   )
 }

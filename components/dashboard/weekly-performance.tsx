@@ -2,17 +2,6 @@
 
 import { useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Trophy } from 'lucide-react'
-
-const defaultData = [
-  { day: 'Mon', value: 10 },
-  { day: 'Tue', value: 15 },
-  { day: 'Wed', value: 22 },
-  { day: 'Thu', value: 35 },
-  { day: 'Fri', value: 45 },
-  { day: 'Sat', value: 58 },
-  { day: 'Sun', value: 84 },
-]
 
 function TrendingSvg() {
   return (
@@ -28,9 +17,9 @@ function TrendingSvg() {
   )
 }
 
-export function WeeklyPerformance({ weeklyData }: { weeklyData?: typeof defaultData }) {
-  const data = weeklyData && weeklyData.length > 0 ? weeklyData : defaultData
-  const maxValue = Math.max(...data.map(d => d.value))
+export function WeeklyPerformance({ weeklyData }: { weeklyData?: any[] }) {
+  const data = weeklyData && weeklyData.length > 0 ? weeklyData : []
+  const maxValue = Math.max(...data.map(d => d.value), 1)
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true })
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
@@ -41,7 +30,7 @@ export function WeeklyPerformance({ weeklyData }: { weeklyData?: typeof defaultD
   const topPad = 12
   const bottomPad = 4
   const innerH = h - topPad - bottomPad
-  const n = data.length
+  const n = data.length || 7
   const step = w / n
   const barW = 32
   const barR = 4
@@ -76,144 +65,145 @@ export function WeeklyPerformance({ weeklyData }: { weeklyData?: typeof defaultD
           <h2 className="text-lg font-bold tracking-tight text-[#0a0a0f]">Weekly Performance</h2>
           <p className="mt-0.5 text-sm text-[#6b6a7a]">Your progress over the last 7 days</p>
         </div>
-        {isBest(data[data.length - 1].value) && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.8 }}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-[#F59E0B]/10 to-[#F59E0B]/20 px-3 py-1.5 border border-[#F59E0B]/20"
-          >
-            <Trophy className="h-3.5 w-3.5 text-[#F59E0B]" />
-            <span className="text-xs font-bold text-[#F59E0B]">Best</span>
-          </motion.div>
-        )}
       </div>
 
-      <div ref={ref}>
-        <svg
-          width="100%"
-          height={h}
-          viewBox={`0 0 ${w} ${h}`}
-          preserveAspectRatio="none"
-          className="overflow-visible block"
-        >
-          <defs>
-            <linearGradient id="trend-line-grad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#FF4D9D" />
-              <stop offset="50%" stopColor="#C084FC" />
-              <stop offset="100%" stopColor="#8B5CF6" />
-            </linearGradient>
-            <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#C084FC" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#C084FC" stopOpacity="0.01" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Grid lines */}
-          {[0, 25, 50, 75, 100].map((pct) => (
-            <line key={pct} x1="0" y1={topPad + (1 - pct / 100) * innerH} x2={w} y2={topPad + (1 - pct / 100) * innerH} stroke="#e8e7f0" strokeWidth="1" />
-          ))}
-
-          {/* Area under trend */}
-          <motion.path
-            d={areaPath}
-            fill="url(#area-fill)"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          />
-
-          {/* Bars */}
-          {data.map((item, i) => {
-            const pt = dataPoints[i]
-            const barH = (item.value / maxValue) * innerH
-            const best = isBest(item.value)
-            return (
-              <g key={item.day} onMouseEnter={() => setHoveredIdx(i)} onMouseLeave={() => setHoveredIdx(null)}>
-                <motion.rect
-                  x={pt.cx - barW / 2}
-                  y={topPad + innerH - barH}
-                  width={barW}
-                  height={barH}
-                  rx={barR}
-                  fill={best ? '#8B5CF6' : '#C084FC'}
-                  opacity={best ? 0.6 : 0.3}
-                  initial={{ scaleY: 0 }}
-                  animate={isInView ? { scaleY: 1 } : {}}
-                  transition={{ duration: 0.4, delay: 0.1 + i * 0.05, ease: 'easeOut' }}
-                  style={{ transformOrigin: `${pt.cx}px ${topPad + innerH}px` }}
-                />
-                {hoveredIdx === i && (
-                  <g>
-                    <rect x={pt.cx - 28} y={topPad + innerH - barH - 30} width={56} height={24} rx={6} fill="#1a1a2e" />
-                    <text x={pt.cx} y={topPad + innerH - barH - 13} textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
-                      {item.value}%
-                    </text>
-                  </g>
-                )}
-              </g>
-            )
-          })}
-
-          {/* Trend line */}
-          <motion.path
-            d={bezierPath}
-            fill="none"
-            stroke="url(#trend-line-grad)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            filter="url(#glow)"
-            initial={{ pathLength: 0 }}
-            animate={isInView ? { pathLength: 1 } : {}}
-            transition={{ duration: 1.2, delay: 0.4, ease: 'easeInOut' }}
-          />
-
-          {/* Data points */}
-          {dataPoints.map((pt, i) => (
-            <g key={`dot-${i}`}>
-              <motion.circle
-                cx={pt.cx} cy={pt.cy} r="5"
-                fill="white" stroke="#8B5CF6" strokeWidth="2.5"
-                initial={{ r: 0 }} animate={isInView ? { r: 5 } : {}}
-                transition={{ duration: 0.3, delay: 0.6 + i * 0.06 }}
-              />
-              <circle cx={pt.cx} cy={pt.cy} r="9" fill="#C084FC" opacity="0.12" />
-            </g>
-          ))}
-        </svg>
-
-        {/* Day labels */}
-        <div className="flex">
-          {data.map((item) => (
-            <span
-              key={item.day}
-              className="text-xs font-medium text-[#a0a0b0] text-center"
-              style={{ width: `${100 / n}%` }}
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0eeff] mb-4">
+            <TrendingSvg />
+          </div>
+          <p className="text-sm font-medium text-[#6b6a7a]">No interview data yet</p>
+          <p className="text-xs text-[#a0a0b0] mt-1">Complete your first interview.</p>
+        </div>
+      ) : (
+        <>
+          <div ref={ref}>
+            <svg
+              width="100%"
+              height={h}
+              viewBox={`0 0 ${w} ${h}`}
+              preserveAspectRatio="none"
+              className="overflow-visible block"
             >
-              {item.day}
-            </span>
-          ))}
-        </div>
-      </div>
+              <defs>
+                <linearGradient id="trend-line-grad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#FF4D9D" />
+                  <stop offset="50%" stopColor="#C084FC" />
+                  <stop offset="100%" stopColor="#8B5CF6" />
+                </linearGradient>
+                <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#C084FC" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#C084FC" stopOpacity="0.01" />
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="2" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
 
-      {/* Footer */}
-      <div className="mt-4 flex flex-col items-start gap-1.5 border-t border-[#e8e7f0] pt-4 text-sm">
-        <div className="flex items-center gap-1.5 font-semibold text-[#0a0a0f]">
-          <TrendingSvg />
-          Trending up by 5.2% this week
-        </div>
-        <p className="text-xs text-[#6b6a7a]">
-          Showing performance for the last 7 days
-        </p>
-      </div>
+              {/* Grid lines */}
+              {[0, 25, 50, 75, 100].map((pct) => (
+                <line key={pct} x1="0" y1={topPad + (1 - pct / 100) * innerH} x2={w} y2={topPad + (1 - pct / 100) * innerH} stroke="#e8e7f0" strokeWidth="1" />
+              ))}
+
+              {/* Area under trend */}
+              <motion.path
+                d={areaPath}
+                fill="url(#area-fill)"
+                initial={{ opacity: 0 }}
+                animate={isInView ? { opacity: 1 } : {}}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              />
+
+              {/* Bars */}
+              {data.map((item, i) => {
+                const pt = dataPoints[i]
+                const barH = (item.value / maxValue) * innerH
+                const best = isBest(item.value)
+                return (
+                  <g key={item.day} onMouseEnter={() => setHoveredIdx(i)} onMouseLeave={() => setHoveredIdx(null)}>
+                    <motion.rect
+                      x={pt.cx - barW / 2}
+                      y={topPad + innerH - barH}
+                      width={barW}
+                      height={barH}
+                      rx={barR}
+                      fill={best ? '#8B5CF6' : '#C084FC'}
+                      opacity={best ? 0.6 : 0.3}
+                      initial={{ scaleY: 0 }}
+                      animate={isInView ? { scaleY: 1 } : {}}
+                      transition={{ duration: 0.4, delay: 0.1 + i * 0.05, ease: 'easeOut' }}
+                      style={{ transformOrigin: `${pt.cx}px ${topPad + innerH}px` }}
+                    />
+                    {hoveredIdx === i && (
+                      <g>
+                        <rect x={pt.cx - 28} y={topPad + innerH - barH - 30} width={56} height={24} rx={6} fill="#1a1a2e" />
+                        <text x={pt.cx} y={topPad + innerH - barH - 13} textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
+                          {item.value}%
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                )
+              })}
+
+              {/* Trend line */}
+              <motion.path
+                d={bezierPath}
+                fill="none"
+                stroke="url(#trend-line-grad)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter="url(#glow)"
+                initial={{ pathLength: 0 }}
+                animate={isInView ? { pathLength: 1 } : {}}
+                transition={{ duration: 1.2, delay: 0.4, ease: 'easeInOut' }}
+              />
+
+              {/* Data points */}
+              {dataPoints.map((pt, i) => (
+                <g key={`dot-${i}`}>
+                  <motion.circle
+                    cx={pt.cx} cy={pt.cy} r="5"
+                    fill="white" stroke="#8B5CF6" strokeWidth="2.5"
+                    initial={{ r: 0 }} animate={isInView ? { r: 5 } : {}}
+                    transition={{ duration: 0.3, delay: 0.6 + i * 0.06 }}
+                  />
+                  <circle cx={pt.cx} cy={pt.cy} r="9" fill="#C084FC" opacity="0.12" />
+                </g>
+              ))}
+            </svg>
+
+            {/* Day labels */}
+            <div className="flex">
+              {data.map((item) => (
+                <span
+                  key={item.day}
+                  className="text-xs font-medium text-[#a0a0b0] text-center"
+                  style={{ width: `${100 / n}%` }}
+                >
+                  {item.day}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-4 flex flex-col items-start gap-1.5 border-t border-[#e8e7f0] pt-4 text-sm">
+            <div className="flex items-center gap-1.5 font-semibold text-[#0a0a0f]">
+              <TrendingSvg />
+              Showing performance for the last 7 days
+            </div>
+            <p className="text-xs text-[#6b6a7a]">
+              Scores reflect your most recent interview results.
+            </p>
+          </div>
+        </>
+      )}
     </motion.div>
   )
 }
